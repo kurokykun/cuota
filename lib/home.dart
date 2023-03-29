@@ -1,3 +1,6 @@
+// ignore_for_file: prefer_const_constructors
+
+import 'package:cuota/profiles.dart';
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Colors;
@@ -61,24 +64,7 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   Expanded(
-                    child: NavigationView(
-                      pane: NavigationPane(
-                          displayMode: PaneDisplayMode.compact,
-                          items: [
-                            PaneItemHeader(
-                                header: Center(
-                              child: Text("Perfiles Proxy"),
-                            )),
-                            PaneItem(
-                                trailing: Icon(FluentIcons.more),
-                                icon: Icon(
-                                  FluentIcons.globe,
-                                  color: Colors.amber,
-                                ),
-                                title: Text("data"),
-                                body: Container())
-                          ]),
-                    ),
+                    child: Profiless(),
                   )
                 ]),
               ),
