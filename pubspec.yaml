@@ -40,6 +40,7 @@ dependencies:
   bitsdojo_window: ^0.1.5
   get: ^4.6.5
   shared_preferences: ^2.0.20
+  digital_lcd_number: ^0.1.2
 
 dev_dependencies:
   flutter_test:
@@ -79,11 +80,13 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
+  fonts:
+   - family: ds-digital
+     fonts:
+       - asset: fonts/ds_digital/DS-DIGI.TTF 
+       - asset: fonts/ds_digital/DS-DIGIB.TTF
+       - asset: fonts/ds_digital/DS-DIGII.TTF
+       - asset: fonts/ds_digital/DS-DIGIT.TTF 
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

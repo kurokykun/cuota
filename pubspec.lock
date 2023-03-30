@@ -89,6 +89,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.5"
+  digital_lcd_number:
+    dependency: "direct main"
+    description:
+      name: digital_lcd_number
+      sha256: "4beb7ff89cb0fb9aeaa8173e603b64daa49c260d3825d8dddd5fce1c04ef0e92"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.2"
   fake_async:
     dependency: transitive
     description:

@@ -199,7 +199,10 @@ class _CntlmConfState extends State<CntlmConf> {
               SizedBox(
                 height: 16,
               ),
-              Text("60 / 100 Mb")
+              Text(
+                "60 / 100 Mb",
+                style: TextStyle(fontFamily: "ds-digital", fontSize: 32),
+              )
             ],
           ),
         ));
