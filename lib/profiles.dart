@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:cuota/cntlm_confview.dart';
 import 'package:cuota/controller.dart';
 import 'package:cuota/profile_entity.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -15,7 +16,7 @@ class Profiless extends StatefulWidget {
 
 class _ProfilessState extends State<Profiless> {
   Controller controller = Get.find();
-
+  int index = 0;
   _getIconColor(Profiles profile) {
     if (profile.color == "blue") {
       return Colors.blue;
@@ -52,18 +53,21 @@ class _ProfilessState extends State<Profiless> {
               trailing: Icon(FluentIcons.more),
               icon: Icon(FluentIcons.globe,
                   color: _getIconColor(controller.profile_list[index])),
-              body: Scaffold(
-                floatingActionButton: FloatingActionButton(
-                    backgroundColor: Colors.blue,
-                    child: Icon(FluentIcons.play_solid),
-                    onPressed: () {}),
-              ));
+              body: CntlmConf());
         });
         return NavigationView(
+          key: GlobalKey(),
           pane: NavigationPane(
-              header: Text("data"),
-              displayMode: PaneDisplayMode.compact,
-              items: items),
+            header: Text("data"),
+            displayMode: PaneDisplayMode.compact,
+            selected: index,
+            items: items,
+            onChanged: (value) {
+              setState(() {
+                index = value;
+              });
+            },
+          ),
         );
       },
     );
