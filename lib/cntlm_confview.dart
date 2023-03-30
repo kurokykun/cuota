@@ -1,10 +1,13 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
+import 'package:cuota/controller.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' hide Colors, IconButton, ButtonStyle;
+import 'package:get/get.dart';
 
 class CntlmConf extends StatefulWidget {
-  const CntlmConf({super.key});
+  int index;
+  CntlmConf({super.key, required this.index});
 
   @override
   State<CntlmConf> createState() => _CntlmConfState();
@@ -13,8 +16,31 @@ class CntlmConf extends StatefulWidget {
 bool checked = false;
 
 class _CntlmConfState extends State<CntlmConf> {
+  Controller controller = Get.find();
+  TextEditingController usuario = TextEditingController();
+  TextEditingController pass = TextEditingController();
+  TextEditingController servidor = TextEditingController();
+  TextEditingController puerto_servidor = TextEditingController();
+  TextEditingController local = TextEditingController();
+  TextEditingController puerto_local = TextEditingController();
+  TextEditingController dominio = TextEditingController();
+  TextEditingController exclusiones = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    usuario.text = controller.profile_list[widget.index].usser;
+    pass.text = controller.profile_list[widget.index].pass;
+    servidor.text = controller.profile_list[widget.index].upstreamProxy;
+    puerto_servidor.text =
+        controller.profile_list[widget.index].upstreamProxyPort;
+    local.text = controller.profile_list[widget.index].localProxy;
+    puerto_local.text = controller.profile_list[widget.index].localPort;
+    dominio.text = controller.profile_list[widget.index].domain;
+    String excludeList = "";
+    for (String element in controller.profile_list[widget.index].noProxy) {
+      excludeList += element + "\n";
+    }
+    exclusiones.text = excludeList;
+
     return Scaffold(
         floatingActionButton: FloatingActionButton(
             backgroundColor: Colors.blue,
@@ -56,6 +82,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       SizedBox(
                         height: 40,
                         child: TextField(
+                          controller: usuario,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(),
                             labelText: 'Usuario',
@@ -68,6 +95,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       SizedBox(
                         height: 40,
                         child: TextField(
+                          controller: pass,
                           obscureText: true,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(),
@@ -88,6 +116,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       child: SizedBox(
                     height: 40,
                     child: TextField(
+                      controller: servidor,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Servidor remoto',
@@ -101,6 +130,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       height: 40,
                       width: 80,
                       child: TextField(
+                        controller: puerto_servidor,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Puerto',
@@ -117,6 +147,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       child: SizedBox(
                     height: 40,
                     child: TextField(
+                      controller: local,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Servidor local',
@@ -130,6 +161,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       height: 40,
                       width: 80,
                       child: TextField(
+                        controller: puerto_local,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Puerto',
@@ -146,6 +178,7 @@ class _CntlmConfState extends State<CntlmConf> {
                       child: SizedBox(
                     height: 40,
                     child: TextField(
+                      controller: dominio,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Dominio',
@@ -159,17 +192,19 @@ class _CntlmConfState extends State<CntlmConf> {
               ),
               Row(
                 children: [
-                  Expanded(
-                      child: SizedBox(
+                  SizedBox(
+                    width: 300,
+                    height: 100,
                     child: TextField(
-                      minLines: 4,
-                      maxLines: 20,
+                      controller: exclusiones,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Exclusiones',
                       ),
                     ),
-                  )),
+                  ),
                 ],
               ),
               SizedBox(

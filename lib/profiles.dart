@@ -53,7 +53,9 @@ class _ProfilessState extends State<Profiless> {
               trailing: Icon(FluentIcons.more),
               icon: Icon(FluentIcons.globe,
                   color: _getIconColor(controller.profile_list[index])),
-              body: CntlmConf());
+              body: CntlmConf(
+                index: index,
+              ));
         });
         return NavigationView(
           key: GlobalKey(),
