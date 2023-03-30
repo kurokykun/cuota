@@ -17,28 +17,9 @@ class Profiless extends StatefulWidget {
 class _ProfilessState extends State<Profiless> {
   Controller controller = Get.find();
   int index = 0;
-  _getIconColor(Profiles profile) {
-    if (profile.color == "blue") {
-      return Colors.blue;
-    } else if (profile.color == "black") {
-      return Colors.black;
-    } else if (profile.color == "green") {
-      return Colors.green;
-    } else if (profile.color == "grey") {
-      return Colors.grey;
-    } else if (profile.color == "magenta") {
-      return Colors.magenta;
-    } else if (profile.color == "orange") {
-      return Colors.orange;
-    } else if (profile.color == "purple") {
-      return Colors.purple;
-    } else if (profile.color == "red") {
-      return Colors.red;
-    } else if (profile.color == "teal") {
-      return Colors.teal;
-    } else if (profile.color == "yellow") {
-      return Colors.yellow;
-    }
+
+  refresh() {
+    setState(() {});
   }
 
   @override
@@ -52,10 +33,9 @@ class _ProfilessState extends State<Profiless> {
               title: Text(controller.profile_list[index].name),
               trailing: Icon(FluentIcons.more),
               icon: Icon(FluentIcons.globe,
-                  color: _getIconColor(controller.profile_list[index])),
-              body: CntlmConf(
-                index: index,
-              ));
+                  color:
+                      controller.getIconColor(controller.profile_list[index])),
+              body: CntlmConf(index: index, refresh: refresh));
         });
         return NavigationView(
           key: GlobalKey(),

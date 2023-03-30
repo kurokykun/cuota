@@ -2,12 +2,14 @@
 
 import 'package:cuota/controller.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/material.dart' hide Colors, IconButton, ButtonStyle;
+import 'package:flutter/material.dart'
+    hide Colors, IconButton, ButtonStyle, showDialog, FilledButton;
 import 'package:get/get.dart';
 
 class CntlmConf extends StatefulWidget {
   int index;
-  CntlmConf({super.key, required this.index});
+  Function refresh;
+  CntlmConf({super.key, required this.index, required this.refresh});
 
   @override
   State<CntlmConf> createState() => _CntlmConfState();
@@ -40,12 +42,50 @@ class _CntlmConfState extends State<CntlmConf> {
       excludeList += element + "\n";
     }
     exclusiones.text = excludeList;
+    void showColorPicker(BuildContext context) async {
+      final result = await showDialog(
+          barrierDismissible: true,
+          context: context,
+          builder: (context) => ContentDialog(
+                constraints:
+                    const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                title: Text("Color del perfil"),
+                content: Wrap(
+                  runSpacing: 10.0,
+                  spacing: 8.0,
+                  children: Colors.accentColors.map((color) {
+                    return Button(
+                      style: ButtonStyle(
+                        padding: ButtonState.all(
+                          EdgeInsets.all(4.0),
+                        ),
+                      ),
+                      onPressed: () {
+                        print(color);
+                        controller.setIconColor(color, widget.index);
+                        setState(() {});
+                        widget.refresh();
+                        Navigator.of(context).pop(color);
+                      },
+                      child: Container(
+                        height: 40.0,
+                        width: 40.0,
+                        color: color,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ));
+    }
 
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.blue,
-            child: Icon(FluentIcons.play_solid),
-            onPressed: () {}),
+            backgroundColor:
+                controller.getIconColor(controller.profile_list[widget.index]),
+            child: Icon(FluentIcons.plug_disconnected),
+            onPressed: () {
+              controller.test();
+            }),
         body: Padding(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -58,9 +98,10 @@ class _CntlmConfState extends State<CntlmConf> {
                     child: Container(
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.all(Radius.circular(20)),
-                          color: Colors.blue),
+                          color: controller.getIconColor(
+                              controller.profile_list[widget.index])),
                       child: IconButton(
-                          onPressed: () {},
+                          onPressed: () => showColorPicker(context),
                           style: ButtonStyle(
                               shape: ButtonState.all<RoundedRectangleBorder>(
                             RoundedRectangleBorder(
@@ -81,9 +122,14 @@ class _CntlmConfState extends State<CntlmConf> {
                     children: [
                       SizedBox(
                         height: 40,
-                        child: TextField(
+                        child: TextFormField(
                           controller: usuario,
                           decoration: InputDecoration(
+                            errorStyle: TextStyle(height: 0),
+                            prefixIcon: Icon(
+                              FluentIcons.people,
+                              size: 18,
+                            ),
                             border: OutlineInputBorder(),
                             labelText: 'Usuario',
                           ),
@@ -98,6 +144,11 @@ class _CntlmConfState extends State<CntlmConf> {
                           controller: pass,
                           obscureText: true,
                           decoration: InputDecoration(
+                            errorStyle: TextStyle(height: 0),
+                            prefixIcon: Icon(
+                              FluentIcons.password_field,
+                              size: 18,
+                            ),
                             border: OutlineInputBorder(),
                             labelText: 'Contraseña',
                           ),
@@ -115,9 +166,20 @@ class _CntlmConfState extends State<CntlmConf> {
                   Expanded(
                       child: SizedBox(
                     height: 40,
-                    child: TextField(
+                    child: TextFormField(
+                      autovalidateMode: AutovalidateMode.always,
+                      validator: (value) {
+                        RegExp exp = RegExp(
+                            r'^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}');
+                        if ((value == null || value.isEmpty) ||
+                            !exp.hasMatch(value)) {
+                          return '';
+                        }
+                        return null;
+                      },
                       controller: servidor,
                       decoration: InputDecoration(
+                        errorStyle: TextStyle(height: 0),
                         border: OutlineInputBorder(),
                         labelText: 'Servidor remoto',
                       ),
@@ -129,9 +191,22 @@ class _CntlmConfState extends State<CntlmConf> {
                   SizedBox(
                       height: 40,
                       width: 80,
-                      child: TextField(
+                      child: TextFormField(
+                        autovalidateMode: AutovalidateMode.always,
+                        maxLength: 4,
+                        validator: (value) {
+                          RegExp exp = RegExp(
+                              r'^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$');
+                          if ((value == null || value.isEmpty) ||
+                              !exp.hasMatch(value)) {
+                            return '';
+                          }
+                          return null;
+                        },
                         controller: puerto_servidor,
                         decoration: InputDecoration(
+                          counterText: '',
+                          errorStyle: TextStyle(height: 0),
                           border: OutlineInputBorder(),
                           labelText: 'Puerto',
                         ),
@@ -146,9 +221,21 @@ class _CntlmConfState extends State<CntlmConf> {
                   Expanded(
                       child: SizedBox(
                     height: 40,
-                    child: TextField(
+                    child: TextFormField(
+                      autovalidateMode: AutovalidateMode.always,
+                      validator: (value) {
+                        RegExp exp = RegExp(
+                            r'^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$');
+                        if (value == null ||
+                            value.isEmpty ||
+                            !exp.hasMatch(value)) {
+                          return '';
+                        }
+                        return null;
+                      },
                       controller: local,
                       decoration: InputDecoration(
+                        errorStyle: TextStyle(height: 0),
                         border: OutlineInputBorder(),
                         labelText: 'Servidor local',
                       ),
@@ -160,9 +247,20 @@ class _CntlmConfState extends State<CntlmConf> {
                   SizedBox(
                       height: 40,
                       width: 80,
-                      child: TextField(
+                      child: TextFormField(
+                        autovalidateMode: AutovalidateMode.always,
+                        validator: (value) {
+                          RegExp exp = RegExp(
+                              r'^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$');
+                          if ((value == null || value.isEmpty) ||
+                              !exp.hasMatch(value)) {
+                            return '';
+                          }
+                          return null;
+                        },
                         controller: puerto_local,
                         decoration: InputDecoration(
+                          errorStyle: TextStyle(height: 0),
                           border: OutlineInputBorder(),
                           labelText: 'Puerto',
                         ),
