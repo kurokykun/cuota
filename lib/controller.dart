@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:io';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:get/state_manager.dart';
@@ -10,6 +12,10 @@ class Controller extends GetxController {
   String path = '';
   var profile_list = [].obs;
   List<File> file_list = [];
+  bool is_running = false;
+
+  String profile_text =
+      """{"name":"My-Super-Proxy","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
 
   getIconColor(Profiles profile) {
     if (profile.color == "blue") {
@@ -74,18 +80,21 @@ class Controller extends GetxController {
         path = await prefs.getString('path');
         var dir = await new File("$path/default_profile.conf")
             .create(recursive: true);
+        dir.writeAsString(profile_text);
       } else if (Platform.isLinux) {
         String? home = envVars['HOME'];
         await prefs.setString("path", '$home/Cuota');
         path = await prefs.getString('path');
         var dir = await new File("$path/default_profile.conf")
             .create(recursive: true);
+        dir.writeAsString(profile_text);
       } else if (Platform.isWindows) {
         String? home = envVars['UserProfile'];
         await prefs.setString("path", '$home\\Cuota');
         path = await prefs.getString('path');
         var dir = await new File("$path\\default_profile.conf")
             .create(recursive: true);
+        dir.writeAsString(profile_text);
       }
     }
   }
@@ -104,7 +113,7 @@ class Controller extends GetxController {
     print(profile_list);
   }
 
-  void test() async {
+  void test_ldap() async {
     var connection = LdapConnection(
         host: "ldap.uci.cu", ssl: false, port: 389, bindDN: "", password: "");
     try {
@@ -113,13 +122,41 @@ class Controller extends GetxController {
       var a = await connection.search("uid=mamolina,OU=people,DC=uci,DC=cu",
           Filter.present('objectClass'), ['dc', 'objectClass']);
       await for (var entry in a.stream) {
-        // Processing stream of SearchEntry
         print('dn: ${entry.dn}');
-
-        // Getting all attributes returned
       }
     } catch (e) {
       print(e);
     }
+  }
+
+  void save_profile(
+      int index,
+      TextEditingController usuario,
+      TextEditingController pass,
+      TextEditingController servidor,
+      TextEditingController puerto_servidor,
+      TextEditingController local,
+      TextEditingController puerto_local,
+      TextEditingController dominio,
+      TextEditingController exclusiones) async {
+    Profiles profile = profile_list[index];
+
+    profile.domain = dominio.text;
+    profile.localPort = puerto_local.text;
+    profile.usser = usuario.text;
+    profile.pass = pass.text;
+    profile.upstreamProxy = servidor.text;
+    profile.upstreamProxyPort = puerto_servidor.text;
+    profile.localProxy = local.text;
+    //profile.noProxy = exclusiones.text;
+    await file_list[index].writeAsString(profilesToJson(profile_list[index]));
+  }
+
+  create_profile(String name) async {
+    var prof = await new File("$path/$name.conf");
+    String profile_text =
+        """{"name":"$name","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
+
+    prof.writeAsString(profile_text);
   }
 }
