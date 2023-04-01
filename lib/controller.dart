@@ -6,6 +6,20 @@ import 'package:get/state_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cuota/profile_entity.dart';
 import 'package:dartdap/dartdap.dart';
+import 'package:http/http.dart';
+import 'dart:convert';
+import 'package:xml/xml.dart' as xml;
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) {
+        //add your certificate verification logic here
+        return true;
+      };
+  }
+}
 
 class Controller extends GetxController {
   late var prefs;
@@ -13,6 +27,9 @@ class Controller extends GetxController {
   var profile_list = [].obs;
   List<File> file_list = [];
   bool is_running = false;
+  var cuota_actual = 0.obs;
+  var cuota_utilizada = 0.obs;
+  var percent = 0.0.obs;
 
   String profile_text =
       """{"name":"My-Super-Proxy","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
@@ -165,5 +182,43 @@ class Controller extends GetxController {
   delete_profile(int index) async {
     await file_list[index].delete();
     await load_profiles();
+  }
+
+  get_cuota(int index) async {
+    var requestBody = '''
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap-env:Body>
+    <ns0:ObtenerCuota xmlns:ns0="urn:InetCuotasWS">
+      <usuario>${profile_list[index].usser}</usuario>
+      <clave>${profile_list[index].pass}</clave>
+      <dominio>uci.cu</dominio>
+    </ns0:ObtenerCuota>
+  </soap-env:Body>
+</soap-env:Envelope>
+
+
+''';
+    try {
+      Response response = await post(
+        Uri.parse('https://cuotas.uci.cu/servicios/v1/InetCuotasWS.php?WSDL'),
+        body: utf8.encode(requestBody),
+      );
+
+      final document = xml.XmlDocument.parse(response.body);
+      cuota_actual.value = int.tryParse(
+          document.rootElement.findAllElements('cuota').first.text)!;
+
+      cuota_utilizada.value = double.parse(
+              document.rootElement.findAllElements('cuota_usada').first.text)
+          .toInt();
+      if (cuota_utilizada.value > cuota_actual.value) {
+        percent.value = 1.0;
+      } else {
+        percent.value = cuota_utilizada.value / cuota_actual.value;
+      }
+      print(double.parse(percent.value.toStringAsFixed(2)) * 100);
+    } catch (e) {
+      print(e);
+    }
   }
 }

@@ -8,10 +8,13 @@
 
 #include <bitsdojo_window_windows/bitsdojo_window_plugin.h>
 #include <system_theme/system_theme_plugin.h>
+#include <system_tray/system_tray_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   BitsdojoWindowPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("BitsdojoWindowPlugin"));
   SystemThemePluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("SystemThemePlugin"));
+  SystemTrayPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("SystemTrayPlugin"));
 }

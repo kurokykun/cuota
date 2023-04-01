@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cuota/controller.dart';
 import 'package:cuota/home.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -8,7 +10,9 @@ import 'package:system_theme/system_theme.dart';
 
 void main() async {
   Controller controller = Get.put(Controller());
+  HttpOverrides.global = MyHttpOverrides();
   await controller.initial_profile();
+
   runApp(const MyApp());
   doWhenWindowReady(() {
     const initialSize = Size(400, 600);

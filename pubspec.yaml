@@ -41,6 +41,9 @@ dependencies:
   get: ^4.6.5
   shared_preferences: ^2.0.20
   dartdap: ^0.6.5
+  http: ^0.13.5
+  xml: ^6.2.2
+  system_tray: ^2.0.2
 
 dev_dependencies:
   flutter_test:

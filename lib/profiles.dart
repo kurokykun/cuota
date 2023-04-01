@@ -155,6 +155,9 @@ class _ProfilessState extends State<Profiless> {
             ],
             onChanged: (value) {
               if (value != items.length && !controller.is_running) {
+                controller.cuota_actual.value = 0;
+                controller.cuota_utilizada.value = 0;
+                controller.percent.value = 0;
                 setState(() {
                   index = value;
                 });

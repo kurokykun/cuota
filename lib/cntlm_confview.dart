@@ -117,6 +117,7 @@ class _CntlmConfState extends State<CntlmConf>
                       );
                     });
                     controller.is_running = !controller.is_running;
+                    controller.get_cuota(widget.index);
                   } else {
                     displayInfoBar(context, builder: (context, close) {
                       return InfoBar(
@@ -407,16 +408,22 @@ class _CntlmConfState extends State<CntlmConf>
                   ),
                   Row(
                     children: [
-                      Expanded(child: ProgressBar(value: 60)),
+                      Expanded(
+                          child: Obx(() => ProgressBar(
+                                value: double.parse(controller.percent.value
+                                        .toStringAsFixed(2)) *
+                                    100,
+                              )))
                     ],
                   ),
                   SizedBox(
                     height: 16,
                   ),
-                  Text(
-                    "60 / 100 Mb",
-                    style: TextStyle(fontFamily: "ds-digital", fontSize: 32),
-                  )
+                  Obx(() => Text(
+                        "${controller.cuota_utilizada} / ${controller.cuota_actual}",
+                        style:
+                            TextStyle(fontFamily: "ds-digital", fontSize: 32),
+                      ))
                 ],
               )),
         ));
