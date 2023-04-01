@@ -118,7 +118,9 @@ class _CntlmConfState extends State<CntlmConf>
                     });
                     controller.is_running = !controller.is_running;
                     controller.get_cuota(widget.index);
+                    controller.check_cuota_timer(widget.index);
                   } else {
+                    controller.stop_cuota_timer();
                     displayInfoBar(context, builder: (context, close) {
                       return InfoBar(
                         title: const Text('Proxy detenido correctamente'),

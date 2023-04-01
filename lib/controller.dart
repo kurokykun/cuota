@@ -9,6 +9,7 @@ import 'package:dartdap/dartdap.dart';
 import 'package:http/http.dart';
 import 'dart:convert';
 import 'package:xml/xml.dart' as xml;
+import 'dart:async';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -30,6 +31,9 @@ class Controller extends GetxController {
   var cuota_actual = 0.obs;
   var cuota_utilizada = 0.obs;
   var percent = 0.0.obs;
+  late Timer timer;
+
+  Duration oneSec = const Duration(minutes: 3);
 
   String profile_text =
       """{"name":"My-Super-Proxy","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
@@ -220,5 +224,13 @@ class Controller extends GetxController {
     } catch (e) {
       print(e);
     }
+  }
+
+  check_cuota_timer(int index) {
+    timer = Timer.periodic(oneSec, (Timer t) => get_cuota(index));
+  }
+
+  stop_cuota_timer() {
+    timer.cancel();
   }
 }
