@@ -2,7 +2,6 @@
 
 import 'package:cuota/cntlm_confview.dart';
 import 'package:cuota/controller.dart';
-import 'package:cuota/profile_entity.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Card;
 import 'package:get/get.dart';
 import 'package:flutter/material.dart'
@@ -41,9 +40,8 @@ class _ProfilessState extends State<Profiless> {
                 ),
                 FilledButton(
                   onPressed: () async {
-                    // Create notebook here
                     if (_formKey.currentState!.validate()) {
-                      controller.create_profile(new_profile.text);
+                      await controller.create_profile(new_profile.text);
                       Navigator.pop(context, 'User canceled dialog');
                       setState(() {});
                     }
@@ -76,6 +74,33 @@ class _ProfilessState extends State<Profiless> {
             ));
   }
 
+  void showDelete(BuildContext context) async {
+    final result = await showDialog(
+        barrierDismissible: true,
+        context: context,
+        builder: (context) => ContentDialog(
+              actions: [
+                Button(
+                  child: const Text('Cancelar'),
+                  onPressed: () {
+                    Navigator.pop(context, 'User canceled dialog');
+                  },
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    await controller.delete_profile(index);
+                    setState(() {});
+                    Navigator.pop(context, 'User canceled dialog');
+                  },
+                  child: Text('Aceptar'),
+                )
+              ],
+              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+              title: Text("Eliminar Perfil"),
+              content: Text("Desea eliminar este perfil proxy?"),
+            ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -85,7 +110,12 @@ class _ProfilessState extends State<Profiless> {
             List.generate(controller.profile_list.length, (index) {
           return PaneItem(
               title: Text(controller.profile_list[index].name),
-              trailing: Icon(FluentIcons.more),
+              trailing: IconButton(
+                icon: Icon(FluentIcons.delete),
+                onPressed: () async {
+                  showDelete(context);
+                },
+              ),
               icon: Icon(FluentIcons.globe,
                   color:
                       controller.getIconColor(controller.profile_list[index])),
@@ -123,7 +153,6 @@ class _ProfilessState extends State<Profiless> {
               )
             ],
             onChanged: (value) {
-              print(value);
               if (value != items.length && !controller.is_running) {
                 setState(() {
                   index = value;

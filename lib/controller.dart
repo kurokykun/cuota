@@ -102,6 +102,7 @@ class Controller extends GetxController {
   load_profiles() async {
     var dir = Directory('$path');
     profile_list.value = [];
+    file_list = [];
     final List<FileSystemEntity> entities = await dir.list().toList();
     final Iterable<File> files = entities.whereType<File>();
     for (File element in files.toList()) {
@@ -110,7 +111,7 @@ class Controller extends GetxController {
       var profile = profilesFromJson(str);
       profile_list.add(profile);
     }
-    print(profile_list);
+    print(profile_list.length);
   }
 
   void test_ldap() async {
@@ -158,5 +159,11 @@ class Controller extends GetxController {
         """{"name":"$name","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
 
     prof.writeAsString(profile_text);
+    await load_profiles();
+  }
+
+  delete_profile(int index) async {
+    await file_list[index].delete();
+    await load_profiles();
   }
 }

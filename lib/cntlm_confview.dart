@@ -65,7 +65,6 @@ class _CntlmConfState extends State<CntlmConf>
                         ),
                       ),
                       onPressed: () {
-                        print(color);
                         controller.setIconColor(color, widget.index);
                         setState(() {});
                         widget.refresh();
