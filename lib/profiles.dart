@@ -129,6 +129,7 @@ class _ProfilessState extends State<Profiless> {
             items: items,
             footerItems: [
               PaneItem(
+                title: Text("Agregar perfil"),
                 icon: Icon(FluentIcons.add),
                 body: Container(),
                 onTap: () {
