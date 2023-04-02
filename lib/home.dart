@@ -4,6 +4,7 @@ import 'package:cuota/profiles.dart';
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Colors;
+import 'package:system_tray/system_tray.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -15,6 +16,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
+    final AppWindow appWindow = AppWindow();
     final buttonColors = WindowButtonColors(
         iconNormal: Color.fromARGB(255, 71, 112, 223),
         mouseOver: const Color(0xFFF6A00C),
@@ -57,7 +59,10 @@ class _HomeState extends State<Home> {
                         Row(
                           children: [
                             MinimizeWindowButton(colors: buttonColors),
-                            CloseWindowButton(colors: closeButtonColors),
+                            CloseWindowButton(
+                              colors: closeButtonColors,
+                              onPressed: () => appWindow.hide(),
+                            ),
                           ],
                         )
                       ],

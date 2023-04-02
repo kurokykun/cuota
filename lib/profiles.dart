@@ -110,12 +110,6 @@ class _ProfilessState extends State<Profiless> {
             List.generate(controller.profile_list.length, (index) {
           return PaneItem(
               title: Text(controller.profile_list[index].name),
-              trailing: IconButton(
-                icon: Icon(FluentIcons.delete),
-                onPressed: () async {
-                  showDelete(context);
-                },
-              ),
               icon: Icon(FluentIcons.globe,
                   color:
                       controller.getIconColor(controller.profile_list[index])),
@@ -127,6 +121,20 @@ class _ProfilessState extends State<Profiless> {
             displayMode: PaneDisplayMode.compact,
             selected: index,
             items: items,
+            header: Row(
+              children: [
+                Expanded(child: Container()),
+                IconButton(
+                  icon: Icon(FluentIcons.delete),
+                  onPressed: () async {
+                    showDelete(context);
+                  },
+                ),
+                SizedBox(
+                  width: 8,
+                )
+              ],
+            ),
             footerItems: [
               PaneItem(
                 title: Text("Agregar perfil"),

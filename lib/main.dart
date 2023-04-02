@@ -11,6 +11,7 @@ import 'package:system_theme/system_theme.dart';
 void main() async {
   Controller controller = Get.put(Controller());
   await controller.initial_profile();
+  await controller.initSystemTray();
   HttpOverrides.global = MyHttpOverrides();
 
   runApp(const MyApp());
