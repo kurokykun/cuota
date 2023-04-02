@@ -32,11 +32,12 @@ class Controller extends GetxController {
   var cuota_utilizada = 0.obs;
   var percent = 0.0.obs;
   late Timer timer;
+  late Process process_cntlm;
 
-  Duration oneSec = const Duration(minutes: 3);
+  Duration oneSec = const Duration(minutes: 1);
 
   String profile_text =
-      """{"name":"My-Super-Proxy","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
+      """{"name":"Perfil nuevo","color":"red","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["localhost", "127.0.0.*", "10.*", "192.168.*", "*uci.cu"],"gateway":false}""";
 
   getIconColor(Profiles profile) {
     if (profile.color == "blue") {
@@ -118,6 +119,9 @@ class Controller extends GetxController {
         dir.writeAsString(profile_text);
       }
     }
+    var dir = await Directory("$path").create(recursive: true);
+    var local_dir =
+        await new File("$path/temp/cntlm.conf").create(recursive: true);
   }
 
   load_profiles() async {
@@ -177,7 +181,7 @@ class Controller extends GetxController {
   create_profile(String name) async {
     var prof = await new File("$path/$name.conf");
     String profile_text =
-        """{"name":"$name","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["sdsd","sdsd","sds"],"gateway":false}""";
+        """{"name":"$name","color":"teal","usser":"testuser","pass":"testpass","local_port":"3128","local_proxy":"127.0.0.1","upstream_proxy":"10.0.0.1","upstream_proxy_port":"8080","domain":"uci.cu","no_proxy":["localhost", "127.0.0.*", "10.*", "192.168.*", "*uci.cu"],"gateway":false}""";
 
     prof.writeAsString(profile_text);
     await load_profiles();
@@ -220,7 +224,7 @@ class Controller extends GetxController {
       } else {
         percent.value = cuota_utilizada.value / cuota_actual.value;
       }
-      print(double.parse(percent.value.toStringAsFixed(2)) * 100);
+      print(document.rootElement.findAllElements('cuota_usada').first.text);
     } catch (e) {
       print(e);
     }
@@ -232,5 +236,31 @@ class Controller extends GetxController {
 
   stop_cuota_timer() {
     timer.cancel();
+  }
+
+  run_cntlm(int index) async {
+    String aux = "";
+    for (String element in profile_list[index].noProxy) {
+      aux += "$element,   ";
+    }
+    String conf_file = '''
+Username	${profile_list[index].usser}
+Domain		${profile_list[index].domain}
+Password	${profile_list[index].pass}
+Proxy		${profile_list[index].upstreamProxy}:${profile_list[index].upstreamProxyPort}
+NoProxy		$aux
+Listen		${profile_list[index].localPort}
+Gateway	no
+Allow		127.0.0.1
+Deny		0/0
+
+''';
+    var local_dir =
+        await new File("$path/temp/cntlm.conf").create(recursive: true);
+
+    await local_dir.writeAsString(conf_file);
+    process_cntlm = await Process.start(
+        'cntlm', ['-c', '$path/temp/cntlm.conf', '-v'],
+        runInShell: false);
   }
 }

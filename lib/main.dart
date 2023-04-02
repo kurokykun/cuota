@@ -10,8 +10,8 @@ import 'package:system_theme/system_theme.dart';
 
 void main() async {
   Controller controller = Get.put(Controller());
-  HttpOverrides.global = MyHttpOverrides();
   await controller.initial_profile();
+  HttpOverrides.global = MyHttpOverrides();
 
   runApp(const MyApp());
   doWhenWindowReady(() {

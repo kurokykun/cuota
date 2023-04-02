@@ -119,8 +119,10 @@ class _CntlmConfState extends State<CntlmConf>
                     controller.is_running = !controller.is_running;
                     controller.get_cuota(widget.index);
                     controller.check_cuota_timer(widget.index);
+                    controller.run_cntlm(widget.index);
                   } else {
                     controller.stop_cuota_timer();
+                    controller.process_cntlm.kill();
                     displayInfoBar(context, builder: (context, close) {
                       return InfoBar(
                         title: const Text('Proxy detenido correctamente'),
@@ -174,7 +176,9 @@ class _CntlmConfState extends State<CntlmConf>
                               color: controller.getIconColor(
                                   controller.profile_list[widget.index])),
                           child: IconButton(
-                              onPressed: () => showColorPicker(context),
+                              onPressed: () => controller.is_running
+                                  ? null
+                                  : showColorPicker(context),
                               style: ButtonStyle(
                                   shape:
                                       ButtonState.all<RoundedRectangleBorder>(
