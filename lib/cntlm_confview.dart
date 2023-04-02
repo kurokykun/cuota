@@ -394,23 +394,8 @@ class _CntlmConfState extends State<CntlmConf>
                   SizedBox(
                     height: 8,
                   ),
-                  Row(
-                    children: [
-                      ToggleSwitch(
-                        checked: checked,
-                        content: Text('Modo Gateway'),
-                        onChanged: !controller.is_running
-                            ? (value) {
-                                setState(() {
-                                  checked = value;
-                                });
-                              }
-                            : null,
-                      )
-                    ],
-                  ),
                   SizedBox(
-                    height: 16,
+                    height: 32,
                   ),
                   Row(
                     children: [
