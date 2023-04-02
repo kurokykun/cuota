@@ -260,7 +260,8 @@ Deny		0/0
 
     await local_dir.writeAsString(conf_file);
     process_cntlm = await Process.start(
-        'cntlm', ['-c', '$path/temp/cntlm.conf', '-v'],
+        Platform.isWindows ? 'path/to/cntlm.exe' : 'cntlm',
+        ['-c', '$path/temp/cntlm.conf', '-v'],
         runInShell: false);
   }
 }
