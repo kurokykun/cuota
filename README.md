@@ -1,16 +1,14 @@
-# cuota
+# Cuota
 
-A new Flutter project.
+A cntlm graphic usser interface writhen in flutter and quota managment for the University of Infomatic Ciences(UCi),with suport for multiple proxy profiles.
 
-## Getting Started
+## Compilation
 
-This project is a starting point for a Flutter application.
+Just download and setup your flutter enviroments in adition in linux you need: appindicator3-0.1 and libappindicator3-dev for system tray support
 
-A few resources to get you started if this is your first Flutter project:
+## Features
+- Proxy Profile Manager
+- Cuota check
+- Field validation
+- Color profiler picker
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
