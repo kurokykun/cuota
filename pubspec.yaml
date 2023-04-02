@@ -83,6 +83,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
    - images/cuota.png
+   - cntlm/
+   - cntlm/cntlm.exe
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

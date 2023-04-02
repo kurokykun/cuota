@@ -260,7 +260,7 @@ Deny		0/0
 
     await local_dir.writeAsString(conf_file);
     process_cntlm = await Process.start(
-        Platform.isWindows ? 'path/to/cntlm.exe' : 'cntlm',
+        Platform.isWindows ? 'data\\flutter_assets\\cntlm\\cntlm.exe' : 'cntlm',
         ['-c', '$path/temp/cntlm.conf', '-v'],
         runInShell: false);
   }
