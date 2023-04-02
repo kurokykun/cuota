@@ -296,6 +296,7 @@ Deny		0/0
     // set context menu
 
     // handle system tray event
+
     systemTray.registerSystemTrayEventHandler((eventName) {
       debugPrint("eventName: $eventName");
       if (eventName == kSystemTrayEventClick) {
