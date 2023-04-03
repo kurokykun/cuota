@@ -137,7 +137,6 @@ class Controller extends GetxController {
       var profile = profilesFromJson(str);
       profile_list.add(profile);
     }
-    print(profile_list.length);
   }
 
   void test_ldap() async {
@@ -225,7 +224,6 @@ class Controller extends GetxController {
       } else {
         percent.value = cuota_utilizada.value / cuota_actual.value;
       }
-      print(document.rootElement.findAllElements('cuota_usada').first.text);
     } catch (e) {
       print(e);
     }
@@ -239,6 +237,7 @@ class Controller extends GetxController {
     timer.cancel();
   }
 
+//Manage the process of start the cntlm process,need test in window.
   run_cntlm(int index) async {
     String aux = "";
     for (String element in profile_list[index].noProxy) {
@@ -262,8 +261,12 @@ Deny		0/0
     await local_dir.writeAsString(conf_file);
     process_cntlm = await Process.start(
         Platform.isWindows ? 'data\\flutter_assets\\cntlm\\cntlm.exe' : 'cntlm',
-        ['-c', '$path/temp/cntlm.conf', '-v'],
+        ['-c', '$path/temp/cntlm.conf', '-P', '$path/temp/pid', '-f'],
         runInShell: false);
+  }
+
+  stop_cntlm() async {
+    await process_cntlm.kill(ProcessSignal.sigkill);
   }
 
   Future<void> initSystemTray() async {
@@ -289,6 +292,7 @@ Deny		0/0
       MenuItemLabel(
           label: 'Exit',
           onClicked: (menuItem) {
+            stop_cntlm();
             appWindow.close();
           }),
     ]);
