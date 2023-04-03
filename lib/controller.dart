@@ -237,6 +237,7 @@ class Controller extends GetxController {
     timer.cancel();
   }
 
+//Manage the process of start the cntlm process,need test in window.
   run_cntlm(int index) async {
     String aux = "";
     for (String element in profile_list[index].noProxy) {
