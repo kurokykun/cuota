@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 
 class CntlmConf extends StatefulWidget {
   int index;
+
   Function refresh;
   CntlmConf({super.key, required this.index, required this.refresh});
 

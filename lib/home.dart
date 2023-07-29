@@ -53,7 +53,8 @@ class _HomeState extends State<Home> {
                 ),
                 child: Column(children: [
                   WindowTitleBarBox(
-                    child: Row(
+                    child: Expanded(
+                        child: Row(
                       children: [
                         Expanded(child: MoveWindow()),
                         Row(
@@ -66,7 +67,7 @@ class _HomeState extends State<Home> {
                           ],
                         )
                       ],
-                    ),
+                    )),
                   ),
                   Expanded(
                     child: Profiless(),

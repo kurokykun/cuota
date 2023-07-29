@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:io';
+import 'package:cuota/user_entity.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:get/state_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +12,7 @@ import 'package:system_tray/system_tray.dart';
 import 'dart:convert';
 import 'package:xml/xml.dart' as xml;
 import 'dart:async';
+import 'package:http/http.dart' as http;
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -25,6 +27,7 @@ class MyHttpOverrides extends HttpOverrides {
 
 class Controller extends GetxController {
   late var prefs;
+  var is_empty = true.obs;
   String path = '';
   var profile_list = [].obs;
   List<File> file_list = [];
@@ -137,22 +140,7 @@ class Controller extends GetxController {
       var profile = profilesFromJson(str);
       profile_list.add(profile);
     }
-  }
-
-  void test_ldap() async {
-    var connection = LdapConnection(
-        host: "ldap.uci.cu", ssl: false, port: 389, bindDN: "", password: "");
-    try {
-      await connection.open();
-      await connection.bind();
-      var a = await connection.search("uid=mamolina,OU=people,DC=uci,DC=cu",
-          Filter.present('objectClass'), ['dc', 'objectClass']);
-      await for (var entry in a.stream) {
-        print('dn: ${entry.dn}');
-      }
-    } catch (e) {
-      print(e);
-    }
+    is_empty.value = profile_list.length == 0 ? true : false;
   }
 
   void save_profile(
@@ -190,6 +178,20 @@ class Controller extends GetxController {
   delete_profile(int index) async {
     await file_list[index].delete();
     await load_profiles();
+  }
+
+  change_pass(User user) async {
+    var url = 'https://drst.uci.cu/change-password';
+    var response = await http.post(
+      Uri.parse(url),
+      body: {
+        'user': user.nombre,
+        'old': user.actual,
+        'new': user.nueva,
+        'confirm': user.confirmar,
+      },
+    );
+    return response;
   }
 
   get_cuota(int index) async {
@@ -277,7 +279,7 @@ Deny		0/0
 
     // We first init the systray menu
     await systemTray.initSystemTray(
-      title: "system tray",
+      title: "Cuota",
       iconPath: path,
     );
 
@@ -300,17 +302,6 @@ Deny		0/0
     // set context menu
 
     // handle system tray event
-
-    systemTray.registerSystemTrayEventHandler((eventName) {
-      debugPrint("eventName: $eventName");
-      if (eventName == kSystemTrayEventClick) {
-        appWindow.show();
-        print("show");
-      } else if (eventName == kSystemTrayEventRightClick) {
-        systemTray.popUpContextMenu();
-        print("menu");
-      }
-    });
 
     await systemTray.setContextMenu(menu);
   }
