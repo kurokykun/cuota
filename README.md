@@ -1,6 +1,6 @@
 # Cuota
 
-A cntlm graphic user interface written in flutter and quota managment for the University of Informatic Sciences(UCi),with suport for multiple proxy profiles.
+A cntlm graphic user interface written in flutter and quota managment for the  Informatic Sciences University,with suport for multiple proxy profiles.
 
 ## Compilation
 
