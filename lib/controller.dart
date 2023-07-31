@@ -140,7 +140,7 @@ class Controller extends GetxController {
       var profile = profilesFromJson(str);
       profile_list.add(profile);
     }
-
+    is_empty.value = profile_list.length == 0;
   }
 
   void save_profile(
