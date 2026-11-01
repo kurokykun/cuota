@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4C8DF6"/>
+      <stop offset="1" stop-color="#1E50C8"/>
+    </linearGradient>
+    <linearGradient id="globe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E3ECFD"/>
+    </linearGradient>
+    <clipPath id="disc"><circle cx="512" cy="512" r="316"/></clipPath>
+  </defs>
+  <g id="tile"><rect width="1024" height="1024" rx="228" fill="url(#bg)"/></g>
+  <g id="mark">
+    <circle cx="512" cy="512" r="316" fill="url(#globe)"/>
+    <g clip-path="url(#disc)" fill="none" stroke="#2A63DA" stroke-width="36">
+      <line x1="150" y1="512" x2="874" y2="512"/>
+      <line x1="150" y1="352" x2="874" y2="352"/>
+      <line x1="150" y1="672" x2="874" y2="672"/>
+      <line x1="512" y1="150" x2="512" y2="874"/>
+      <ellipse cx="512" cy="512" rx="168" ry="340"/>
+    </g>
+  </g>
+</svg>

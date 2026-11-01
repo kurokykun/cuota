@@ -1,5 +1,5 @@
 name: cuota
-description: A new Flutter project.
+description: Interfaz gráfica para cntlm y medidor de cuota de la UCI.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,10 +16,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
-  sdk: '>=2.19.2 <3.0.0'
+  sdk: ^3.13.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,43 +31,22 @@ dependencies:
   flutter:
     sdk: flutter
 
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
-  fluent_ui: ^4.4.1
-  system_theme: ^2.1.0
-  bitsdojo_window: ^0.1.5
-  get: ^4.6.5
-  shared_preferences: ^2.0.20
-  dartdap: ^0.6.5
-  http: ^0.13.5
-  xml: ^6.2.2
-  system_tray: ^2.0.2
-  flutter_launcher_icons: ^0.12.0
+  fluent_ui: ^4.17.0
+  system_theme: ^3.3.0
+  flutter_riverpod: ^3.4.3
+  flutter_secure_storage: ^11.2.0
+  window_manager: ^0.5.2
+  shared_preferences: ^2.5.6
+  http: ^1.6.0
+  path_provider: ^2.1.5
+  xml: ^7.1.0
+  tray_manager: ^0.5.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-flutter_icons:
-  android: true
-  ios: true
-  image_path: "images/app.png"
-  windows:
-    generate: true
-    image_path: "images/app.png"
-    icon_size: 48 # min:48, max:256, default: 48
-  macos:
-    generate: true
-    image_path: "images/app.png"
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -84,6 +63,8 @@ flutter:
   assets:
    - images/app.png
    - images/app.ico
+   - images/tray.png
+   - assets/certs/
    - cntlm/
    - cntlm/cntlm.exe
 

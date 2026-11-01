@@ -1,27 +1,47 @@
 import 'dart:io';
 
-import 'package:cuota/controller.dart';
-import 'package:cuota/home.dart';
+import 'package:cuota/core/config/app_paths.dart';
+import 'package:cuota/core/network/secure_http_client.dart';
+import 'package:cuota/core/presentation/app_shell.dart';
+import 'package:cuota/core/providers.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:system_theme/system_theme.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
-  Controller controller = Get.put(Controller());
-  await controller.initial_profile();
-  await controller.initSystemTray();
-  HttpOverrides.global = MyHttpOverrides();
+  WidgetsFlutterBinding.ensureInitialized();
+  if (!Platform.isAndroid) await windowManager.ensureInitialized();
+  final paths = await AppPaths.resolve();
+  final certificates = await loadBundledCertificates();
 
-  runApp(const MyApp());
-  doWhenWindowReady(() {
-    const initialSize = Size(400, 600);
-    appWindow.minSize = initialSize;
-    appWindow.maxSize = initialSize;
-    appWindow.size = initialSize;
-    appWindow.alignment = Alignment.center;
-    appWindow.show();
-  });
+  runApp(ProviderScope(
+    // Failures are reported to the user, there is nothing to retry blindly.
+    retry: (retryCount, error) => null,
+    overrides: [
+      appPathsProvider.overrideWithValue(paths),
+      bundledCertificatesProvider.overrideWithValue(certificates),
+    ],
+    child: const MyApp(),
+  ));
+
+  if (Platform.isAndroid) return;
+
+  const size = Size(420, 640);
+  await windowManager.waitUntilReadyToShow(
+    const WindowOptions(
+      title: 'Cuota',
+      size: size,
+      minimumSize: size,
+      maximumSize: size,
+      center: true,
+      titleBarStyle: TitleBarStyle.hidden,
+    ),
+    () async {
+      await windowManager.show();
+      await windowManager.focus();
+    },
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -31,13 +51,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FluentApp(
-      title: 'Flutter Demo',
+      title: 'Cuota',
       debugShowCheckedModeBanner: false,
       theme: FluentThemeData(
         brightness: Brightness.dark,
         accentColor: SystemTheme.accentColor.accent.toAccentColor(),
       ),
-      home: Home(),
+      home: const AppShell(),
     );
   }
 }
