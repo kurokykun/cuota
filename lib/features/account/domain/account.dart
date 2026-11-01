@@ -18,6 +18,13 @@ abstract interface class AccountRepository {
   Future<void> changePassword(PasswordChange change);
 }
 
+class PasswordRequirement {
+  const PasswordRequirement(this.label, this.isMet);
+
+  final String label;
+  final bool Function(String value) isMet;
+}
+
 abstract final class PasswordPolicy {
   static final _strong =
       RegExp(r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$');
@@ -26,6 +33,17 @@ abstract final class PasswordPolicy {
       'minúscula, número y uno de !@#\$&*~';
 
   static bool isStrong(String value) => _strong.hasMatch(value);
+
+  static final requirements = [
+    PasswordRequirement('Al menos 8 caracteres', (v) => v.length >= 8),
+    PasswordRequirement(
+        'Una letra mayúscula', (v) => v.contains(RegExp('[A-Z]'))),
+    PasswordRequirement(
+        'Una letra minúscula', (v) => v.contains(RegExp('[a-z]'))),
+    PasswordRequirement('Un número', (v) => v.contains(RegExp('[0-9]'))),
+    PasswordRequirement(
+        r'Un símbolo: ! @ # $ & * ~', (v) => v.contains(RegExp(r'[!@#$&*~]'))),
+  ];
 }
 
 class ChangePassword {

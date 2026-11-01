@@ -1,4 +1,6 @@
 import 'package:cuota/core/presentation/messages.dart';
+import 'package:cuota/features/account/presentation/account_providers.dart';
+import 'package:cuota/features/account/presentation/change_password_page.dart';
 import 'package:cuota/features/profiles/presentation/profile_dialogs.dart';
 import 'package:cuota/features/profiles/presentation/profile_header.dart';
 import 'package:cuota/features/profiles/presentation/profile_view.dart';
@@ -46,19 +48,37 @@ class ProfilesPage extends ConsumerWidget {
     });
 
     final selected = ref.watch(selectedProfileProvider);
+    final changingPassword = ref.watch(changePasswordOpenProvider);
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final page = child.key == const ValueKey('change-password');
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween(
+              begin: Offset(page ? 0.08 : -0.08, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        );
+      },
       layoutBuilder: (current, previous) => Stack(
         fit: StackFit.expand,
         children: [...previous, ?current],
       ),
-      child: selected == null
-          ? const _EmptyState(key: ValueKey('empty'))
-          : ProfileView(
-              key: ValueKey(selected.id),
-              profileId: selected.id,
-            ),
+      child: changingPassword
+          ? const ChangePasswordPage(key: ValueKey('change-password'))
+          : selected == null
+              ? const _EmptyState(key: ValueKey('empty'))
+              : ProfileView(
+                  key: ValueKey(selected.id),
+                  profileId: selected.id,
+                ),
     );
   }
 }

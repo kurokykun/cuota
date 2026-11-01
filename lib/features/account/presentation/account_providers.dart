@@ -9,3 +9,16 @@ final changePasswordProvider = Provider<ChangePassword>(
     certsDir: ref.watch(appPathsProvider).certsDir,
   )),
 );
+
+final changePasswordOpenProvider =
+    NotifierProvider<ChangePasswordOpen, bool>(ChangePasswordOpen.new);
+
+/// Whether the change password page is showing instead of the profile.
+class ChangePasswordOpen extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void open() => state = true;
+
+  void close() => state = false;
+}

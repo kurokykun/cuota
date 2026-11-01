@@ -275,6 +275,25 @@ void main() {
       expect(find.text('Eliminar perfil'), findsOneWidget);
     });
 
+    testWidgets('changing the password is a page of its own', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cambiar contraseña'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contraseña actual'), findsOneWidget);
+      expect(find.byType(ContentDialog), findsNothing);
+      expect(find.text('usuario'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('password-back')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contraseña actual'), findsNothing);
+      expect(find.byKey(const ValueKey('power-orb')), findsOneWidget);
+    });
+
     testWidgets('the profile icon opens the color palette', (tester) async {
       await pump(tester);
 

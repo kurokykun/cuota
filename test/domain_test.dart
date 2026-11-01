@@ -79,5 +79,13 @@ void main() {
       expect(PasswordPolicy.isStrong('abcdef1!'), isFalse);
       expect(PasswordPolicy.isStrong('Abc1!'), isFalse);
     });
+
+    test('a password meeting every requirement is strong', () {
+      for (final value in ['Abcdef1!', 'abcdef1!', 'Abc1!', 'ABCDEFGH']) {
+        final allMet =
+            PasswordPolicy.requirements.every((r) => r.isMet(value));
+        expect(allMet, PasswordPolicy.isStrong(value), reason: value);
+      }
+    });
   });
 }

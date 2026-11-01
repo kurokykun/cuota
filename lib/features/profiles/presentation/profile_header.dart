@@ -1,5 +1,5 @@
 import 'package:cuota/core/presentation/action_sheet.dart';
-import 'package:cuota/features/account/presentation/change_password_dialog.dart';
+import 'package:cuota/features/account/presentation/account_providers.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/profiles/presentation/profile_colors.dart';
 import 'package:cuota/features/profiles/presentation/profile_dialogs.dart';
@@ -121,7 +121,7 @@ class ProfileMenuButton extends ConsumerWidget {
 
   final Profile? profile;
 
-  void _open(BuildContext context) {
+  void _open(BuildContext context, WidgetRef ref) {
     final profile = this.profile;
     showActionSheet(
       context,
@@ -130,7 +130,7 @@ class ProfileMenuButton extends ConsumerWidget {
         SheetAction(
           label: 'Cambiar contraseña',
           leading: const Icon(FluentIcons.lock, size: 14),
-          onSelected: () => showChangePasswordDialog(context),
+          onSelected: ref.read(changePasswordOpenProvider.notifier).open,
         ),
         if (profile != null)
           SheetAction(
@@ -151,7 +151,7 @@ class ProfileMenuButton extends ConsumerWidget {
     return IconButton(
       key: const ValueKey('profile-menu'),
       icon: const Icon(FluentIcons.more, size: 16),
-      onPressed: busy ? null : () => _open(context),
+      onPressed: busy ? null : () => _open(context, ref),
     );
   }
 }
