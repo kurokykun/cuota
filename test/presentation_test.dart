@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:cuota/core/config/app_paths.dart';
 import 'package:cuota/core/errors/failures.dart';
 import 'package:cuota/core/providers.dart';
+import 'package:cuota/features/logs/domain/log_entry.dart';
+import 'package:cuota/features/logs/presentation/log_providers.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/profiles/domain/profile_repository.dart';
 import 'package:cuota/features/profiles/presentation/profiles_page.dart';
@@ -57,11 +59,28 @@ class FakeProxy implements ProxyGateway {
   @override
   Stream<String> get unexpectedExits => exits.stream;
 
+  final logs = StreamController<String>.broadcast();
+
+  @override
+  Stream<String> get logLines => logs.stream;
+
   @override
   Stream<void> get quotaExhausted => const Stream.empty();
 
   @override
   Future<String?> runningProfileId() async => null;
+}
+
+class FakeExporter implements LogExporter {
+  String? name;
+  String? contents;
+
+  @override
+  Future<String> save(String fileName, String contents) async {
+    name = fileName;
+    this.contents = contents;
+    return '/descargas/$fileName';
+  }
 }
 
 class FakeQuota implements QuotaRepository {
@@ -79,18 +98,21 @@ void main() {
   late FakeProfiles profiles;
   late FakeProxy proxy;
   late FakeQuota quota;
+  late FakeExporter exporter;
 
   List<Override> overrides() => [
         appPathsProvider.overrideWithValue(const AppPaths(root: '/nonexistent')),
         profileRepositoryProvider.overrideWithValue(profiles),
         proxyGatewayProvider.overrideWithValue(proxy),
         quotaRepositoryProvider.overrideWithValue(quota),
+        logExporterProvider.overrideWithValue(exporter),
       ];
 
   setUp(() {
     profiles = FakeProfiles([sampleProfile()]);
     proxy = FakeProxy();
     quota = FakeQuota();
+    exporter = FakeExporter();
   });
 
   group('controllers', () {
@@ -195,6 +217,19 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    for (final height in [300.0, 360.0, 420.0, 500.0, 560.0, 700.0]) {
+      testWidgets('nothing overflows with a height of $height', (tester) async {
+        await pump(tester);
+        tester.view.physicalSize = Size(420, height);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byKey(const ValueKey('row-account')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
+
     testWidgets('shows the empty state without profiles', (tester) async {
       profiles = FakeProfiles([]);
 
@@ -275,6 +310,32 @@ void main() {
       expect(find.text('Eliminar perfil'), findsOneWidget);
     });
 
+    testWidgets('a profile can be renamed from its settings', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Editar perfil'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const ValueKey('profile-name')), 'Residencia');
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(profiles.saved.last.name, 'Residencia');
+      expect(profiles.saved.last.id, 'perfil');
+    });
+
+    testWidgets('an invalid name is not saved', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('row-account')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('profile-name')), '  ');
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(profiles.saved.every((p) => p.name == 'Perfil'), isTrue);
+    });
+
     testWidgets('changing the password is a page of its own', (tester) async {
       await pump(tester);
 
@@ -292,6 +353,44 @@ void main() {
 
       expect(find.text('Contraseña actual'), findsNothing);
       expect(find.byKey(const ValueKey('power-orb')), findsOneWidget);
+    });
+
+    testWidgets('a new profile opens in its own settings', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-selector')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nuevo perfil'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContentDialog), findsNothing);
+      expect(find.byKey(const ValueKey('profile-name')), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings-back')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('the log shows and exports the activity', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ver registro'));
+      await tester.pumpAndSettle();
+      proxy.logs.add('Proxy listening on 127.0.0.1:3128');
+      // One frame delivers the event, the next one shows it.
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.textContaining('Proxy listening', findRichText: true),
+          findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('logs-export')));
+      await tester.pump();
+
+      expect(exporter.contents, contains('[cntlm] Proxy listening'));
+      expect(exporter.name, endsWith('.txt'));
+      expect(find.textContaining('/descargas/'), findsOneWidget);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('the profile icon opens the color palette', (tester) async {

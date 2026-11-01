@@ -57,7 +57,12 @@ class _AppShellState extends ConsumerState<AppShell>
     try {
       tray.trayManager.addListener(this);
       await tray.trayManager
-          .setIcon(Platform.isWindows ? 'images/app.ico' : 'images/app.png');
+          .setIcon(switch (Platform.operatingSystem) {
+        'windows' => 'images/app.ico',
+        // Panels use plain glyphs, the app icon turns into a blur at their size.
+        'linux' => 'images/tray.png',
+        _ => 'images/app.png',
+      });
       await tray.trayManager.setContextMenu(tray.Menu(items: [
         tray.MenuItem(label: 'Mostrar', onClick: (_) => _showWindow()),
         tray.MenuItem(label: 'Ocultar', onClick: (_) => windowManager.hide()),
@@ -126,7 +131,13 @@ class _AppShellState extends ConsumerState<AppShell>
     if (Platform.isAndroid) {
       return ColoredBox(
         color: FluentTheme.of(context).scaffoldBackgroundColor,
-        child: const SafeArea(child: ProfilesPage()),
+        // Nothing else here reacts to the keyboard, it would cover the fields.
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: const SafeArea(child: ProfilesPage()),
+        ),
       );
     }
     return ColoredBox(

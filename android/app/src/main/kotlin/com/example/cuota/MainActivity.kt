@@ -2,11 +2,13 @@ package com.example.cuota
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -60,7 +62,31 @@ class MainActivity : FlutterActivity() {
             )
             "stop" -> CuotaVpnService.stop(this) { mainHandler.post { result.success(null) } }
             "runningProfileId" -> result.success(CuotaVpnService.runningProfileId)
+            "saveLog" -> saveLog(
+                call.argument<String>("name")!!,
+                call.argument<String>("contents")!!,
+                result,
+            )
             else -> result.notImplemented()
+        }
+    }
+
+    /** MediaStore reaches the public downloads folder without any permission. */
+    private fun saveLog(name: String, contents: String, result: MethodChannel.Result) {
+        thread {
+            try {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                }
+                val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IOException("No uri")
+                contentResolver.openOutputStream(uri)?.use { it.write(contents.toByteArray()) }
+                    ?: throw IOException("No stream")
+                mainHandler.post { result.success("Descargas/$name") }
+            } catch (_: IOException) {
+                mainHandler.post { result.error("saveLog", "No se pudo guardar", null) }
+            }
         }
     }
 

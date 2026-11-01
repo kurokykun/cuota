@@ -25,6 +25,7 @@ class CntlmProxyGateway implements ProxyGateway {
 
   final _exits = StreamController<String>.broadcast();
   final _output = <String>[];
+  final _logs = StreamController<String>.broadcast();
   Process? _process;
   Future<int>? _exitCode;
   bool _stopping = false;
@@ -41,6 +42,9 @@ class CntlmProxyGateway implements ProxyGateway {
 
   @override
   Stream<String> get unexpectedExits => _exits.stream;
+
+  @override
+  Stream<String> get logLines => _logs.stream;
 
   // The desktop proxy does not look into the traffic.
   @override
@@ -168,12 +172,15 @@ class CntlmProxyGateway implements ProxyGateway {
       _exitCode = null;
       unawaited(_deleteIfExists(_pidPath));
       debugPrint('cntlm exited with code $code: ${_output.join(' | ')}');
+      _logs.add('cntlm terminó con código $code');
       _exits.add('El proxy se detuvo inesperadamente, inícielo de nuevo');
     }));
   }
 
   void _remember(String chunk) {
-    _output.addAll(const LineSplitter().convert(chunk));
+    final lines = const LineSplitter().convert(chunk);
+    lines.forEach(_logs.add);
+    _output.addAll(lines);
     if (_output.length > 20) _output.removeRange(0, _output.length - 20);
   }
 
@@ -183,6 +190,7 @@ class CntlmProxyGateway implements ProxyGateway {
     while (DateTime.now().isBefore(deadline)) {
       if (!identical(_process, process)) {
         debugPrint('cntlm exited on start: ${_output.join(' | ')}');
+        _logs.add('cntlm terminó durante el inicio');
         throw const ProxyStartFailure(_cannotStart);
       }
       try {
@@ -258,6 +266,7 @@ class CntlmProxyGateway implements ProxyGateway {
 
   ProxyStartFailure _notFound() {
     debugPrint('cntlm executable not found: $executable');
+    _logs.add('No se encontró el ejecutable: $executable');
     return const ProxyStartFailure(
         'No se encontró el programa cntlm, instálelo para usar el proxy');
   }

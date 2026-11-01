@@ -220,6 +220,14 @@ void main() {
     });
   });
 
+  test('the certificates bundled with the app can be loaded', () {
+    final files = Directory('assets/certs').listSync().whereType<File>();
+    expect(files, isNotEmpty);
+    for (final file in files) {
+      SecurityContext().setTrustedCertificates(file.path);
+    }
+  });
+
   group('secure HTTP client', () {
     late HttpServer server;
     late String caPath;
@@ -260,6 +268,19 @@ void main() {
         guardNetwork(certs.path, () => client.get(url())),
         throwsA(isA<TlsFailure>()),
       );
+    });
+
+    test('accepts a certificate bundled with the app', () async {
+      final certs = await Directory('${dir.path}/empty').create();
+      final client = createSecureHttpClient(
+        certs.path,
+        bundled: [File(caPath).readAsBytesSync()],
+      );
+      addTearDown(client.close);
+
+      final response = await guardNetwork(certs.path, () => client.get(url()));
+
+      expect(response.body, 'ok');
     });
 
     test('accepts a CA added to the certificates directory', () async {

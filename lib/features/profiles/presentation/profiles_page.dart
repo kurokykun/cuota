@@ -1,7 +1,8 @@
 import 'package:cuota/core/presentation/messages.dart';
-import 'package:cuota/features/account/presentation/account_providers.dart';
+import 'package:cuota/core/presentation/app_page.dart';
 import 'package:cuota/features/account/presentation/change_password_page.dart';
-import 'package:cuota/features/profiles/presentation/profile_dialogs.dart';
+import 'package:cuota/features/logs/presentation/log_providers.dart';
+import 'package:cuota/features/logs/presentation/logs_page.dart';
 import 'package:cuota/features/profiles/presentation/profile_header.dart';
 import 'package:cuota/features/profiles/presentation/profile_view.dart';
 import 'package:cuota/features/profiles/presentation/profiles_providers.dart';
@@ -14,6 +15,8 @@ class ProfilesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The log has to collect from the start, not only once its page is opened.
+    ref.listen(logControllerProvider, (_, _) {});
     final messages = ref.read(messagesProvider.notifier);
     ref.listen(profilesControllerProvider, (previous, next) {
       if (previous?.value != null) return;
@@ -48,19 +51,20 @@ class ProfilesPage extends ConsumerWidget {
     });
 
     final selected = ref.watch(selectedProfileProvider);
-    final changingPassword = ref.watch(changePasswordOpenProvider);
+    final page = ref.watch(appPageProvider);
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 260),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) {
-        final page = child.key == const ValueKey('change-password');
+        final inner = child.key == const ValueKey('change-password') ||
+            child.key == const ValueKey('logs');
         return FadeTransition(
           opacity: animation,
           child: SlideTransition(
             position: Tween(
-              begin: Offset(page ? 0.08 : -0.08, 0),
+              begin: Offset(inner ? 0.08 : -0.08, 0),
               end: Offset.zero,
             ).animate(animation),
             child: child,
@@ -71,14 +75,17 @@ class ProfilesPage extends ConsumerWidget {
         fit: StackFit.expand,
         children: [...previous, ?current],
       ),
-      child: changingPassword
-          ? const ChangePasswordPage(key: ValueKey('change-password'))
-          : selected == null
-              ? const _EmptyState(key: ValueKey('empty'))
-              : ProfileView(
-                  key: ValueKey(selected.id),
-                  profileId: selected.id,
-                ),
+      child: switch (page) {
+        AppPage.changePassword =>
+          const ChangePasswordPage(key: ValueKey('change-password')),
+        AppPage.logs => const LogsPage(key: ValueKey('logs')),
+        AppPage.profile => selected == null
+            ? const _EmptyState(key: ValueKey('empty'))
+            : ProfileView(
+                key: ValueKey(selected.id),
+                profileId: selected.id,
+              ),
+      },
     );
   }
 }
@@ -123,13 +130,13 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _CreateFirstProfileButton extends StatelessWidget {
+class _CreateFirstProfileButton extends ConsumerWidget {
   const _CreateFirstProfileButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FilledButton(
-      onPressed: () => showCreateProfileDialog(context),
+      onPressed: () => startNewProfile(ref),
       child: const Text('Crear perfil'),
     );
   }

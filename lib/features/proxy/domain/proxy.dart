@@ -14,6 +14,9 @@ abstract interface class ProxyGateway {
   /// Emits a description each time the proxy terminates without being asked.
   Stream<String> get unexpectedExits;
 
+  /// What the proxy writes about its activity, line by line.
+  Stream<String> get logLines;
+
   /// Emits when the upstream proxy rejects traffic for lack of quota.
   Stream<void> get quotaExhausted;
 

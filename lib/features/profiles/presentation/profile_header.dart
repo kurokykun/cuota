@@ -1,5 +1,5 @@
 import 'package:cuota/core/presentation/action_sheet.dart';
-import 'package:cuota/features/account/presentation/account_providers.dart';
+import 'package:cuota/core/presentation/app_page.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/profiles/presentation/profile_colors.dart';
 import 'package:cuota/features/profiles/presentation/profile_dialogs.dart';
@@ -12,9 +12,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// The icon changes the color of the profile and the name switches to another
 /// one. What is rarely needed stays behind the menu button.
 class ProfileHeader extends ConsumerWidget {
-  const ProfileHeader({super.key, required this.profile});
+  const ProfileHeader({super.key, required this.profile, required this.onEdit});
 
   final Profile profile;
+  final VoidCallback onEdit;
 
   void _openProfiles(BuildContext context, WidgetRef ref) {
     final profiles =
@@ -37,7 +38,7 @@ class ProfileHeader extends ConsumerWidget {
           label: 'Nuevo perfil',
           leading: const Icon(FluentIcons.add, size: 14),
           separated: true,
-          onSelected: () => showCreateProfileDialog(context),
+          onSelected: () => startNewProfile(ref),
         ),
       ],
     );
@@ -109,7 +110,7 @@ class ProfileHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 8),
-        ProfileMenuButton(profile: profile),
+        ProfileMenuButton(profile: profile, onEdit: onEdit),
       ],
     );
   }
@@ -117,22 +118,38 @@ class ProfileHeader extends ConsumerWidget {
 
 /// Actions on the [profile], or only the ones on the account without one.
 class ProfileMenuButton extends ConsumerWidget {
-  const ProfileMenuButton({super.key, this.profile});
+  const ProfileMenuButton({super.key, this.profile, this.onEdit});
 
   final Profile? profile;
+  final VoidCallback? onEdit;
 
   void _open(BuildContext context, WidgetRef ref) {
     final profile = this.profile;
+    final busy = ref.read(proxyControllerProvider).isBusy;
+    final pages = ref.read(appPageProvider.notifier);
     showActionSheet(
       context,
       title: 'Opciones',
       actions: [
+        if (onEdit != null && !busy)
+          SheetAction(
+            label: 'Editar perfil',
+            leading: const Icon(FluentIcons.edit, size: 14),
+            onSelected: onEdit!,
+          ),
+        if (!busy)
+          SheetAction(
+            label: 'Cambiar contraseña',
+            leading: const Icon(FluentIcons.lock, size: 14),
+            onSelected: () => pages.open(AppPage.changePassword),
+          ),
+        // Available while the proxy runs, that is when it is most needed.
         SheetAction(
-          label: 'Cambiar contraseña',
-          leading: const Icon(FluentIcons.lock, size: 14),
-          onSelected: ref.read(changePasswordOpenProvider.notifier).open,
+          label: 'Ver registro',
+          leading: const Icon(FluentIcons.text_document, size: 14),
+          onSelected: () => pages.open(AppPage.logs),
         ),
-        if (profile != null)
+        if (profile != null && !busy)
           SheetAction(
             label: 'Eliminar perfil',
             leading:
@@ -147,11 +164,10 @@ class ProfileMenuButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final busy = ref.watch(proxyControllerProvider).isBusy;
     return IconButton(
       key: const ValueKey('profile-menu'),
       icon: const Icon(FluentIcons.more, size: 16),
-      onPressed: busy ? null : () => _open(context, ref),
+      onPressed: () => _open(context, ref),
     );
   }
 }

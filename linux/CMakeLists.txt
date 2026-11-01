@@ -92,6 +92,9 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# Its only warning: libayatana-appindicator deprecates the API it is built on.
+target_compile_options(tray_manager_plugin PRIVATE -Wno-deprecated-declarations)
+
 
 # === Installation ===
 # By default, "installing" just makes a relocatable bundle in the build

@@ -35,14 +35,14 @@ abstract final class PasswordPolicy {
   static bool isStrong(String value) => _strong.hasMatch(value);
 
   static final requirements = [
-    PasswordRequirement('Al menos 8 caracteres', (v) => v.length >= 8),
+    PasswordRequirement('8 caracteres', (v) => v.length >= 8),
     PasswordRequirement(
-        'Una letra mayúscula', (v) => v.contains(RegExp('[A-Z]'))),
+        'Mayúscula', (v) => v.contains(RegExp('[A-Z]'))),
     PasswordRequirement(
-        'Una letra minúscula', (v) => v.contains(RegExp('[a-z]'))),
-    PasswordRequirement('Un número', (v) => v.contains(RegExp('[0-9]'))),
+        'Minúscula', (v) => v.contains(RegExp('[a-z]'))),
+    PasswordRequirement('Número', (v) => v.contains(RegExp('[0-9]'))),
     PasswordRequirement(
-        r'Un símbolo: ! @ # $ & * ~', (v) => v.contains(RegExp(r'[!@#$&*~]'))),
+        r'Símbolo ! @ # $ & * ~', (v) => v.contains(RegExp(r'[!@#$&*~]'))),
   ];
 }
 

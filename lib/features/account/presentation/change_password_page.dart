@@ -1,8 +1,8 @@
 import 'package:cuota/core/errors/failures.dart';
+import 'package:cuota/core/presentation/app_page.dart';
 import 'package:cuota/core/presentation/messages.dart';
 import 'package:cuota/features/account/domain/account.dart';
 import 'package:cuota/features/account/presentation/account_providers.dart';
-import 'package:cuota/features/profiles/presentation/profile_colors.dart';
 import 'package:cuota/features/profiles/presentation/profiles_providers.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +15,6 @@ class ChangePasswordPage extends ConsumerStatefulWidget {
 }
 
 class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
-  final _formKey = GlobalKey<FormState>();
   late final _username = TextEditingController(
     text: ref.read(selectedProfileProvider)?.username,
   );
@@ -24,12 +23,19 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   final _confirmation = TextEditingController();
   bool _busy = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // The list of requirements follows what is being typed.
-    _replacement.addListener(() => setState(() {}));
-  }
+  bool get _matches =>
+      _confirmation.text.isNotEmpty && _confirmation.text == _replacement.text;
+
+  /// The action becomes available when there is nothing left to correct, so
+  /// the form does not have to scold about fields still being typed.
+  bool get _canSubmit =>
+      !_busy &&
+      _username.text.isNotEmpty &&
+      _current.text.isNotEmpty &&
+      PasswordPolicy.isStrong(_replacement.text) &&
+      _matches;
+
+  void _refresh(String _) => setState(() {});
 
   @override
   void dispose() {
@@ -42,13 +48,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
   void _close() {
     ref.read(messagesProvider.notifier).dismiss();
-    ref.read(changePasswordOpenProvider.notifier).close();
+    ref.read(appPageProvider.notifier).close();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_canSubmit) return;
     final messages = ref.read(messagesProvider.notifier);
-    final page = ref.read(changePasswordOpenProvider.notifier);
+    final page = ref.read(appPageProvider.notifier);
     messages.dismiss();
     setState(() => _busy = true);
     try {
@@ -71,24 +77,24 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
   Widget _password(
     String label,
-    TextEditingController controller,
-    FormFieldValidator<String> validator,
-  ) {
+    TextEditingController controller, {
+    VoidCallback? onDone,
+  }) {
     return InfoLabel(
       label: label,
-      child: PasswordFormBox(
+      child: PasswordBox(
         controller: controller,
         enabled: !_busy,
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-        validator: validator,
+        revealMode: PasswordRevealMode.peekAlways,
+        onChanged: _refresh,
+        onSubmitted: (_) => onDone?.call(),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final typography = FluentTheme.of(context).typography;
-    final accent = ref.watch(selectedProfileProvider)?.color.color;
+    final theme = FluentTheme.of(context);
 
     return PopScope(
       canPop: false,
@@ -111,7 +117,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                 Expanded(
                   child: Text(
                     'Cambiar contraseña',
-                    style: typography.bodyLarge
+                    style: theme.typography.bodyLarge
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -121,54 +127,55 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 8),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      InfoLabel(
-                        label: 'Usuario',
-                        child: TextFormBox(
-                          controller: _username,
-                          enabled: !_busy,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (value) => value!.isEmpty
-                              ? 'El usuario es obligatorio'
-                              : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Section(
+                      children: [
+                        InfoLabel(
+                          label: 'Usuario',
+                          child: TextBox(
+                            controller: _username,
+                            enabled: !_busy,
+                            onChanged: _refresh,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _password(
-                        'Contraseña actual',
-                        _current,
-                        (value) => value!.isEmpty
-                            ? 'La contraseña es obligatoria'
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      _password(
-                        'Contraseña nueva',
-                        _replacement,
-                        (value) => PasswordPolicy.isStrong(value!)
-                            ? null
-                            : 'No cumple los requisitos',
-                      ),
-                      const SizedBox(height: 8),
-                      for (final requirement in PasswordPolicy.requirements)
-                        _Requirement(
-                          label: requirement.label,
-                          met: requirement.isMet(_replacement.text),
+                        const SizedBox(height: 12),
+                        _password('Contraseña actual', _current),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _Section(
+                      children: [
+                        _password('Contraseña nueva', _replacement),
+                        const SizedBox(height: 10),
+                        _StrengthBar(value: _replacement.text),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final requirement
+                                in PasswordPolicy.requirements)
+                              _RequirementChip(
+                                label: requirement.label,
+                                met: requirement.isMet(_replacement.text),
+                              ),
+                          ],
                         ),
-                      const SizedBox(height: 12),
-                      _password(
-                        'Confirmar contraseña nueva',
-                        _confirmation,
-                        (value) => value == _replacement.text
-                            ? null
-                            : 'Las contraseñas no coinciden',
-                      ),
-                    ],
-                  ),
+                        const SizedBox(height: 12),
+                        _password(
+                          'Repetir contraseña nueva',
+                          _confirmation,
+                          onDone: _submit,
+                        ),
+                        _MatchHint(
+                          visible: _confirmation.text.isNotEmpty,
+                          matches: _matches,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -182,24 +189,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                 height: 40,
                 child: FilledButton(
                   key: const ValueKey('password-submit'),
-                  onPressed: _busy ? null : _submit,
-                  style: accent == null
-                      ? null
-                      : ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith(
-                            (states) => states.isDisabled ? null : accent,
-                          ),
-                        ),
-                  child: Text(
-                    _busy ? 'Cambiando…' : 'Cambiar contraseña',
-                    style: accent == null || _busy
-                        ? null
-                        : TextStyle(
-                            color: accent.computeLuminance() > 0.45
-                                ? Colors.black
-                                : Colors.white,
-                          ),
-                  ),
+                  onPressed: _canSubmit ? _submit : null,
+                  child: Text(_busy ? 'Cambiando…' : 'Cambiar contraseña'),
                 ),
               ),
             ),
@@ -210,32 +201,137 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   }
 }
 
-class _Requirement extends StatelessWidget {
-  const _Requirement({required this.label, required this.met});
+class _Section extends StatelessWidget {
+  const _Section({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: FluentTheme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+}
+
+/// One segment per requirement, so progress is readable at a glance.
+class _StrengthBar extends StatelessWidget {
+  const _StrengthBar({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final requirements = PasswordPolicy.requirements;
+    final met = requirements.where((r) => r.isMet(value)).length;
+    final color = switch (met) {
+      <= 2 => Colors.red.lighter,
+      < 5 => Colors.orange,
+      _ => Colors.green.lighter,
+    };
+    return Row(
+      children: [
+        for (var index = 0; index < requirements.length; index++) ...[
+          if (index > 0) const SizedBox(width: 4),
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: 4,
+              decoration: BoxDecoration(
+                color: index < met
+                    ? color
+                    : theme.resources.controlStrokeColorDefault,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _RequirementChip extends StatelessWidget {
+  const _RequirementChip({required this.label, required this.met});
 
   final String label;
   final bool met;
 
   @override
   Widget build(BuildContext context) {
-    final caption = FluentTheme.of(context).typography.caption;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+    final theme = FluentTheme.of(context);
+    final green = Colors.green.lighter;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: met
+            ? green.withValues(alpha: 0.16)
+            : theme.resources.controlFillColorSecondary,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            child: Icon(
-              met ? FluentIcons.completed_solid : FluentIcons.circle_ring,
-              key: ValueKey(met),
-              size: 12,
-              color: met ? Colors.green.lighter : caption?.color,
+          if (met) ...[
+            Icon(FluentIcons.accept, size: 10, color: green),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: theme.typography.caption?.copyWith(
+              color: met ? green : null,
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label, style: caption)),
         ],
       ),
+    );
+  }
+}
+
+class _MatchHint extends StatelessWidget {
+  const _MatchHint({required this.visible, required this.matches});
+
+  final bool visible;
+  final bool matches;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = matches ? Colors.green.lighter : Colors.orange;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 150),
+      alignment: Alignment.topCenter,
+      child: !visible
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    matches ? FluentIcons.accept : FluentIcons.warning,
+                    size: 11,
+                    color: color,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    matches ? 'Coinciden' : 'Todavía no coinciden',
+                    style: FluentTheme.of(context)
+                        .typography
+                        .caption
+                        ?.copyWith(color: color),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

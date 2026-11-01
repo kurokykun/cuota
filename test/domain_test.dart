@@ -1,5 +1,6 @@
 import 'package:cuota/core/errors/failures.dart';
 import 'package:cuota/features/account/domain/account.dart';
+import 'package:cuota/features/logs/domain/log_entry.dart';
 import 'package:cuota/features/profiles/domain/profile_validators.dart';
 import 'package:cuota/features/quota/domain/quota.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +62,23 @@ void main() {
         throwsA(isA<ValidationFailure>()),
       );
       ProfileValidators.ensureRunnable(sampleProfile());
+    });
+  });
+
+  group('log', () {
+    test('never keeps credentials or hashes', () {
+      final line = sanitizeLogLine(
+        'u=usuario clave=secreto PassNT ABCDEF0123456789ABCDEF0123456789',
+        username: 'usuario',
+        password: 'secreto',
+      );
+
+      expect(line, 'u=[usuario] clave=[oculto] PassNT [oculto]');
+    });
+
+    test('file names are valid on every system', () {
+      expect(logFileName(DateTime(2026, 11, 1, 9, 5, 3)),
+          'cuota-registro-20261101-090503.txt');
     });
   });
 

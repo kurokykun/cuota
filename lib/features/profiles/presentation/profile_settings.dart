@@ -28,11 +28,15 @@ class ProfileSettings extends ConsumerStatefulWidget {
     super.key,
     required this.profileId,
     required this.initialSection,
+    this.selectName = false,
     required this.onClose,
   });
 
   final String profileId;
   final SettingsSection initialSection;
+
+  /// Ready to type over the name, for a profile just created.
+  final bool selectName;
   final VoidCallback onClose;
 
   @override
@@ -44,11 +48,13 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
 
   late SettingsSection _section = widget.initialSection;
 
-  /// Name and color cannot change while this view is open.
+  /// The color cannot change while this view is open.
   late final Profile _base;
   late final ProfilesController _profiles;
   late final MessagesController _messages;
 
+  late final TextEditingController _name;
+  final _nameFocus = FocusNode();
   late final TextEditingController _username;
   late final TextEditingController _password;
   late final TextEditingController _domain;
@@ -67,6 +73,7 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
   late Profile _lastDraft = _base;
 
   List<TextEditingController> get _controllers => [
+        _name,
         _username,
         _password,
         _domain,
@@ -86,6 +93,7 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
         .requireValue
         .profiles
         .firstWhere((p) => p.id == widget.profileId);
+    _name = TextEditingController(text: _base.name);
     _username = TextEditingController(text: _base.username);
     _password = TextEditingController(text: _base.password);
     _domain = TextEditingController(text: _base.domain);
@@ -99,6 +107,14 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
     for (final controller in _controllers) {
       controller.addListener(_scheduleSave);
     }
+    if (widget.selectName) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _nameFocus.requestFocus();
+        _name.selection =
+            TextSelection(baseOffset: 0, extentOffset: _name.text.length);
+      });
+    }
   }
 
   @override
@@ -106,13 +122,26 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
     // The widget tree is locked here, the provider must change after it.
     if (_dirty) unawaited(Future(_saveNow));
     _saveTimer?.cancel();
+    _nameFocus.dispose();
     for (final controller in _controllers) {
       controller.dispose();
     }
     super.dispose();
   }
 
+  Iterable<String> get _otherNames =>
+      (ref.read(profilesControllerProvider).value?.profiles ?? const <Profile>[])
+          .where((p) => p.id != _base.id)
+          .map((p) => p.name);
+
+  /// An invalid name is not saved, the last valid one stays until it is fixed.
+  String _validName() =>
+      ProfileValidators.name(_name.text, taken: _otherNames) == null
+      ? _name.text.trim()
+      : _lastDraft.name;
+
   Profile _draft() => _base.copyWith(
+        name: _validName(),
         username: _username.text,
         password: _password.text,
         domain: _domain.text,
@@ -136,6 +165,7 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
   /// Listeners also fire for selection changes, which are not edits.
   bool get _draftUnchanged =>
       !_dirty &&
+      _name.text == _base.name &&
       _username.text == _base.username &&
       _password.text == _base.password &&
       _domain.text == _base.domain &&
@@ -188,12 +218,15 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  _base.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: typography.bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                child: ValueListenableBuilder(
+                  valueListenable: _name,
+                  builder: (context, name, _) => Text(
+                    name.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: typography.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -272,6 +305,20 @@ class _ProfileSettingsState extends ConsumerState<ProfileSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        InfoLabel(
+          label: 'Nombre del perfil',
+          child: TextFormBox(
+            key: const ValueKey('profile-name'),
+            focusNode: _nameFocus,
+            enabled: enabled,
+            controller: _name,
+            maxLength: ProfileValidators.maxNameLength,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: (value) =>
+                ProfileValidators.name(value, taken: _otherNames),
+          ),
+        ),
+        const SizedBox(height: 12),
         _field('Usuario', _username, ProfileValidators.username,
             enabled: enabled, placeholder: 'Su usuario de la UCI'),
         const SizedBox(height: 12),

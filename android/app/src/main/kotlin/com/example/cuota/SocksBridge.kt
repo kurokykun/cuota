@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 class SocksBridge(
     private val proxyPort: Int,
     private val onQuotaBlocked: () -> Unit,
+    private val onLog: (String) -> Unit,
 ) : Closeable {
     private val server = ServerSocket(0, 128, InetAddress.getByName("127.0.0.1"))
     private val pool: ExecutorService = Executors.newCachedThreadPool()
@@ -127,6 +128,7 @@ class SocksBridge(
             val status = head?.let(::parseStatusCode)
             if (status !in 200..299) {
                 if (head != null && isQuotaBlock(head)) onQuotaBlocked()
+                onLog("CONNECT $authority rechazado: ${status ?: "sin respuesta"}")
                 reply(output, REPLY_NOT_ALLOWED)
                 return@tracked
             }

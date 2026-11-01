@@ -23,6 +23,10 @@ class ProfileHome extends ConsumerWidget {
     required this.onOpenSettings,
   });
 
+  /// Fits the largest quota error and message at the same time.
+  static const _minHeightWithoutScroll = 560.0;
+  static const _compactOrbSize = 150.0;
+
   final String profileId;
   final ValueChanged<SettingsSection> onOpenSettings;
 
@@ -65,50 +69,81 @@ class ProfileHome extends ConsumerWidget {
     final transitioning = status.phase == ProxyPhase.starting ||
         status.phase == ProxyPhase.stopping;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ProfileHeader(profile: profile),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // The orb uses the room left by the texts, within reason.
-                final orbSize = math.min(
-                  constraints.maxWidth * 0.78,
-                  constraints.maxHeight - 110,
-                ).clamp(120.0, 300.0);
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    PowerOrb(
-                      key: const ValueKey('power-orb'),
-                      size: orbSize,
-                      phase: status.phase,
-                      accent: accent,
-                      ringColor: _ringColor(fraction, accent),
-                      fraction: fraction,
-                      onPressed: transitioning
-                          ? null
-                          : () => _toggle(ref, profile, status),
-                    ),
-                    _StatusText(status: status, accent: accent),
-                  ],
-                );
-              },
-            ),
-          ),
-          _QuotaCard(
-            state: quota,
-            running: status.phase == ProxyPhase.running,
-            color: _ringColor(fraction, accent),
-          ),
-          const SizedBox(height: 8),
-          _Summary(profile: profile, onOpenSettings: onOpenSettings),
-          const MessageStrip(padding: EdgeInsets.only(top: 8)),
-        ],
+    final header = ProfileHeader(
+      profile: profile,
+      onEdit: () => onOpenSettings(SettingsSection.account),
+    );
+    Widget orb(double size) => PowerOrb(
+          key: const ValueKey('power-orb'),
+          size: size,
+          phase: status.phase,
+          accent: accent,
+          ringColor: _ringColor(fraction, accent),
+          fraction: fraction,
+          onPressed:
+              transitioning ? null : () => _toggle(ref, profile, status),
+        );
+    final statusText = _StatusText(status: status, accent: accent);
+    final details = [
+      _QuotaCard(
+        state: quota,
+        running: status.phase == ProxyPhase.running,
+        color: _ringColor(fraction, accent),
       ),
+      const SizedBox(height: 8),
+      _Summary(profile: profile, onOpenSettings: onOpenSettings),
+      const MessageStrip(padding: EdgeInsets.only(top: 8)),
+    ];
+    const padding = EdgeInsets.fromLTRB(16, 12, 16, 16);
+
+    return LayoutBuilder(
+      builder: (context, page) {
+        // Landscape phones and the like: everything still has to be reachable.
+        if (page.maxHeight < _minHeightWithoutScroll) {
+          return SingleChildScrollView(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                header,
+                const SizedBox(height: 24),
+                Center(child: orb(_compactOrbSize)),
+                const SizedBox(height: 24),
+                statusText,
+                const SizedBox(height: 16),
+                ...details,
+              ],
+            ),
+          );
+        }
+        return Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // The orb uses the room left by the texts, within reason.
+                    final orbSize = math
+                        .min(
+                          constraints.maxWidth * 0.78,
+                          constraints.maxHeight - 110,
+                        )
+                        .clamp(120.0, 300.0);
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [orb(orbSize), statusText],
+                    );
+                  },
+                ),
+              ),
+              ...details,
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cuota/core/config/app_paths.dart';
+import 'package:cuota/core/network/secure_http_client.dart';
 import 'package:cuota/core/presentation/app_shell.dart';
 import 'package:cuota/core/providers.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -12,11 +13,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!Platform.isAndroid) await windowManager.ensureInitialized();
   final paths = await AppPaths.resolve();
+  final certificates = await loadBundledCertificates();
 
   runApp(ProviderScope(
     // Failures are reported to the user, there is nothing to retry blindly.
     retry: (retryCount, error) => null,
-    overrides: [appPathsProvider.overrideWithValue(paths)],
+    overrides: [
+      appPathsProvider.overrideWithValue(paths),
+      bundledCertificatesProvider.overrideWithValue(certificates),
+    ],
     child: const MyApp(),
   ));
 

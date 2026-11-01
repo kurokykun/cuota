@@ -17,6 +17,8 @@ class AndroidVpnProxyGateway implements ProxyGateway {
           _exits.add(map['message'] as String);
         case 'quota':
           _quota.add(null);
+        case 'log':
+          _logs.add(map['message'] as String);
       }
     });
   }
@@ -26,12 +28,16 @@ class AndroidVpnProxyGateway implements ProxyGateway {
 
   final _exits = StreamController<String>.broadcast();
   final _quota = StreamController<void>.broadcast();
+  final _logs = StreamController<String>.broadcast();
 
   @override
   Stream<String> get unexpectedExits => _exits.stream;
 
   @override
   Stream<void> get quotaExhausted => _quota.stream;
+
+  @override
+  Stream<String> get logLines => _logs.stream;
 
   @override
   Future<String?> runningProfileId() =>

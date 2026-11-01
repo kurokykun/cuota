@@ -1,9 +1,12 @@
+import 'package:cuota/core/errors/failures.dart';
+import 'package:cuota/core/presentation/messages.dart';
 import 'package:cuota/core/providers.dart';
 import 'package:cuota/features/profiles/data/file_profile_repository.dart';
 import 'package:cuota/features/profiles/data/secret_store.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/profiles/domain/profile_repository.dart';
 import 'package:cuota/features/profiles/domain/profile_use_cases.dart';
+import 'package:fluent_ui/fluent_ui.dart' show InfoBarSeverity;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final secretStoreProvider =
@@ -41,10 +44,21 @@ class ProfilesController extends AsyncNotifier<ProfileCatalog> {
   /// Throws a failure when the name is rejected or the file cannot be written.
   Future<Profile> create(String name) async {
     final profile = await CreateProfile(_repository)(name, existing: _profiles);
-    _publish([..._profiles, profile]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())));
+    _publish([..._profiles, profile]);
     return profile;
   }
+
+  /// First free name of the form "Perfil nuevo", "Perfil nuevo 2"...
+  String _freeName() {
+    final taken = _profiles.map((p) => p.name.toLowerCase()).toSet();
+    var name = 'Perfil nuevo';
+    for (var suffix = 2; taken.contains(name.toLowerCase()); suffix++) {
+      name = 'Perfil nuevo $suffix';
+    }
+    return name;
+  }
+
+  Future<Profile> createWithFreeName() => create(_freeName());
 
   /// Publishes [profile] and persists it. On failure the app keeps using the
   /// new values for this session, and the caller reports the failure.
@@ -74,6 +88,8 @@ class ProfilesController extends AsyncNotifier<ProfileCatalog> {
 
   void _publish(List<Profile> profiles) {
     final current = state.value;
+    profiles = List.of(profiles)
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     state = AsyncData(ProfileCatalog(
       profiles: profiles,
       corruptFiles: current?.corruptFiles ?? const [],
@@ -100,3 +116,30 @@ final selectedProfileProvider = Provider<Profile?>((ref) {
   final id = ref.watch(selectedProfileIdProvider);
   return profiles.firstWhere((p) => p.id == id, orElse: () => profiles.first);
 });
+
+final newProfileIdProvider =
+    NotifierProvider<NewProfileId, String?>(NewProfileId.new);
+
+/// The profile just created, whose view has to open on its settings.
+class NewProfileId extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? id) => state = id;
+}
+
+/// Creates a profile and takes the user to its settings to fill it in.
+Future<void> startNewProfile(WidgetRef ref) async {
+  final messages = ref.read(messagesProvider.notifier);
+  final selection = ref.read(selectedProfileIdProvider.notifier);
+  final newProfile = ref.read(newProfileIdProvider.notifier);
+  try {
+    final profile = await ref
+        .read(profilesControllerProvider.notifier)
+        .createWithFreeName();
+    newProfile.set(profile.id);
+    selection.select(profile.id);
+  } on Failure catch (failure) {
+    messages.show(failure.message, severity: InfoBarSeverity.error);
+  }
+}

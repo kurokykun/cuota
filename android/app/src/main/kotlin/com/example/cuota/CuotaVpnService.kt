@@ -27,6 +27,8 @@ class CuotaVpnService : VpnService() {
     private var cntlm: Process? = null
     private var bridge: SocksBridge? = null
     private var tun: ParcelFileDescriptor? = null
+    private var logcat: Process? = null
+    private val recentLines = ArrayDeque<String>()
     private var lastQuotaEvent = 0L
 
     @Volatile
@@ -67,7 +69,7 @@ class CuotaVpnService : VpnService() {
         ensurePortFree(request.port)
         startCntlm(request)
 
-        val socks = SocksBridge(request.port, ::reportQuotaBlocked)
+        val socks = SocksBridge(request.port, ::reportQuotaBlocked, ::log)
         bridge = socks
         socks.start()
 
@@ -78,6 +80,7 @@ class CuotaVpnService : VpnService() {
         if (!TProxyService.TProxyStartService(config.path, fd.fd)) {
             throw IOException("No se pudo iniciar el túnel")
         }
+        log("Túnel VPN activo")
     }
 
     private fun ensurePortFree(port: Int) {
@@ -99,10 +102,12 @@ class CuotaVpnService : VpnService() {
                 .redirectErrorStream(true)
                 .start()
             cntlm = process
+            startLogcat()
             thread(isDaemon = true) {
                 // Reading the output also keeps cntlm from blocking on a full pipe.
-                runCatching { process.inputStream.bufferedReader().forEachLine { } }
-                process.waitFor()
+                runCatching { process.inputStream.bufferedReader().forEachLine(::logCntlmLine) }
+                val code = process.waitFor()
+                log("cntlm terminó con código $code")
                 if (!stopping) failFromBackground("El proxy se detuvo inesperadamente, inícielo de nuevo")
             }
             waitUntilListening(request.port, process)
@@ -188,10 +193,40 @@ class CuotaVpnService : VpnService() {
         stopSelf()
     }
 
+    /** Bionic may send what cntlm writes to syslog to logcat instead of stderr. */
+    private fun startLogcat() {
+        val process = runCatching {
+            ProcessBuilder("logcat", "-v", "raw", "-T", "1", "-s", "cntlm:V")
+                .redirectErrorStream(true)
+                .start()
+        }.getOrNull() ?: return
+        logcat = process
+        thread(isDaemon = true) {
+            runCatching {
+                process.inputStream.bufferedReader().forEachLine { line ->
+                    if (!line.startsWith("---")) logCntlmLine(line)
+                }
+            }
+        }
+    }
+
+    /** The same line can arrive through both channels, it is only shown once. */
+    @Synchronized
+    private fun logCntlmLine(line: String) {
+        val text = line.replace(CNTLM_LINE_PREFIX, "").trim()
+        if (text.isEmpty() || text in recentLines) return
+        recentLines.addLast(text)
+        if (recentLines.size > RECENT_LINES) recentLines.removeFirst()
+        log(text)
+    }
+
     /** With connections open cntlm ignores the first signal, so it may need force. */
     private fun stopCntlm() {
         val process = cntlm ?: return
         cntlm = null
+        logcat?.destroy()
+        logcat = null
+        recentLines.clear()
         process.destroy()
         if (!process.waitFor(STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
             process.destroyForcibly()
@@ -269,6 +304,9 @@ class CuotaVpnService : VpnService() {
         private const val CHANNEL_ID = "proxy"
         private const val NOTIFICATION_ID = 1
         private const val START_TIMEOUT_MS = 5_000L
+        private const val RECENT_LINES = 64
+        private const val MAX_PENDING_LOGS = 500
+        private val CNTLM_LINE_PREFIX = Regex("^cntlm\\[\\d+\\]: ")
         private const val STOP_TIMEOUT_MS = 1_500L
         private const val LEFTOVER_KILL_DELAY_MS = 200L
         private const val QUOTA_EVENT_INTERVAL_MS = 60_000L
@@ -302,6 +340,31 @@ class CuotaVpnService : VpnService() {
         /** Sink of the events for Flutter, null while no UI is attached. */
         @Volatile
         var events: ((Map<String, String>) -> Unit)? = null
+            set(value) {
+                field = value
+                if (value != null) flushPendingLogs()
+            }
+
+        private val pendingLogs = ArrayDeque<String>()
+
+        /** Lines written with no UI attached wait for one, within a limit. */
+        @Synchronized
+        fun log(message: String) {
+            val sink = events
+            if (sink != null) {
+                sink(mapOf("type" to "log", "message" to message))
+            } else {
+                pendingLogs.addLast(message)
+                if (pendingLogs.size > MAX_PENDING_LOGS) pendingLogs.removeFirst()
+            }
+        }
+
+        @Synchronized
+        private fun flushPendingLogs() {
+            while (pendingLogs.isNotEmpty()) {
+                events?.invoke(mapOf("type" to "log", "message" to pendingLogs.removeFirst()))
+            }
+        }
 
         fun cntlmPath(context: Context) =
             File(context.applicationInfo.nativeLibraryDir, "libcntlm.so").path
