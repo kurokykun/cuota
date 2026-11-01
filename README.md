@@ -4,7 +4,7 @@ A cntlm graphic user interface written in flutter and quota managment for the  I
 
 ## Compilation
 
-Just download and setup your flutter environments in addition in linux you need: appindicator3-0.1 and libappindicator3-dev for system tray support
+Requires Flutter 3.47 or newer. On Linux you also need the cntlm binary in your PATH and ayatana-appindicator3-0.1 (libayatana-appindicator3-dev on Debian/Ubuntu, libayatana-appindicator on Arch/Manjaro) for system tray support.
 
 ## Features
 - Proxy Profile Manager
