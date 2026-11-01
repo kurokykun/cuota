@@ -6,6 +6,8 @@ A cntlm graphic user interface written in flutter and quota managment for the  I
 
 Requires Flutter 3.47 or newer. On Linux you also need the cntlm binary in your PATH and ayatana-appindicator3-0.1 (libayatana-appindicator3-dev on Debian/Ubuntu, libayatana-appindicator on Arch/Manjaro) for system tray support.
 
+On Android, first run `android/native/setup_native.sh`. It downloads hev-socks5-tunnel and builds cntlm (GPLv2) from source with the NDK.
+
 ## Features
 - Proxy Profile Manager
 - Cuota check

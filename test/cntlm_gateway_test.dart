@@ -75,7 +75,7 @@ void main() {
     await expectLater(
       gateway.start(sampleProfile(localPort: '${busy.port}')),
       throwsA(isA<ProxyStartFailure>()
-          .having((f) => f.message, 'message', contains('no está disponible'))),
+          .having((f) => f.message, 'message', contains('ya está en uso'))),
     );
   }, skip: !hasCntlm);
 
@@ -97,11 +97,12 @@ void main() {
     await gateway.start(sampleProfile(localPort: '$port'));
     final exit = gateway.unexpectedExits.first;
 
-    final pid = int.parse(File('${dir.path}/cntlm.pid').readAsStringSync());
+    final pid =
+        int.parse(File('${dir.path}/cntlm.pid').readAsLinesSync().first);
     Process.killPid(pid, ProcessSignal.sigkill);
 
     expect(await exit.timeout(const Duration(seconds: 5)),
-        contains('terminó inesperadamente'));
+        contains('se detuvo inesperadamente'));
     // A new start must work right after the crash.
     await gateway.start(sampleProfile(localPort: '$port'));
     expect(await listening(port), isTrue);
@@ -122,7 +123,7 @@ void main() {
     final port = await freePort();
     await gateway.start(sampleProfile(localPort: '$port', password: 'S3creta!'));
 
-    final pid = File('${dir.path}/cntlm.pid').readAsStringSync().trim();
+    final pid = File('${dir.path}/cntlm.pid').readAsLinesSync().first;
     final cmdline = File('/proc/$pid/cmdline').readAsBytesSync();
     expect(utf8.decode(cmdline, allowMalformed: true),
         isNot(contains('S3creta!')));

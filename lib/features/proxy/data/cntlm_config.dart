@@ -27,9 +27,14 @@ String buildCntlmConfig(Profile profile, CntlmHashes hashes) {
     for (final entry in hashes.values.entries) '${entry.key}\t${entry.value}',
     'Proxy\t${profile.upstreamHost}:${profile.upstreamPort}',
     if (profile.noProxy.isNotEmpty) 'NoProxy\t${profile.noProxy.join(', ')}',
-    'Listen\t${profile.localAddress}:${profile.localPort}',
+    // An address in Listen would take precedence over gateway mode.
+    profile.gateway
+        ? 'Listen\t${profile.localPort}'
+        : 'Listen\t${profile.localAddress}:${profile.localPort}',
     'Gateway\t${profile.gateway ? 'yes' : 'no'}',
     'Allow\t127.0.0.1',
+    if (profile.gateway)
+      for (final host in profile.allowedHosts) 'Allow\t$host',
     'Deny\t0/0',
   ];
   return '${lines.join('\n')}\n';

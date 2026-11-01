@@ -80,12 +80,35 @@ abstract final class ProfileValidators {
     return null;
   }
 
-  /// Splits the text of the exclusions field, one entry per line.
-  static List<String> parseExclusions(String text) => text
-      .split('\n')
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty)
+  /// Addresses or networks allowed in gateway mode. Networks that would open
+  /// the proxy, and with it the user's quota, to everyone are rejected.
+  static String? allowedHosts(Iterable<String> values) {
+    for (final value in values) {
+      final parts = value.split('/');
+      final prefix = parts.length == 2 ? int.tryParse(parts[1]) : 32;
+      final valid = parts.length <= 2 &&
+          ipv4(parts[0]) == null &&
+          prefix != null &&
+          prefix >= 8 &&
+          prefix <= 32;
+      if (!valid) return 'Equipo o red no válidos: "$value"';
+    }
+    return null;
+  }
+
+  /// Splits typed or pasted text into entries, whatever the separator is.
+  static List<String> splitEntries(String text) => text
+      .split(RegExp(r'[\s,;]+'))
+      .where((entry) => entry.isNotEmpty)
       .toList();
+
+  static String? _gatewayRules(Profile profile) {
+    if (!profile.gateway) return null;
+    if (profile.allowedHosts.isEmpty) {
+      return 'Indique qué equipos pueden usar el proxy en "Compartir en la red"';
+    }
+    return allowedHosts(profile.allowedHosts);
+  }
 
   /// Throws a [ValidationFailure] unless [profile] can be used to run the proxy.
   static void ensureRunnable(Profile profile) {
@@ -93,10 +116,11 @@ abstract final class ProfileValidators {
         password(profile.password) ??
         host(profile.upstreamHost) ??
         port(profile.upstreamPort) ??
-        ipv4(profile.localAddress) ??
+        (profile.gateway ? null : ipv4(profile.localAddress)) ??
         port(profile.localPort) ??
         domain(profile.domain) ??
-        exclusions(profile.noProxy);
+        exclusions(profile.noProxy) ??
+        _gatewayRules(profile);
     if (error != null) throw ValidationFailure(error);
   }
 }

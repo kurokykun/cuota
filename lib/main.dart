@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cuota/core/config/app_paths.dart';
 import 'package:cuota/core/presentation/app_shell.dart';
 import 'package:cuota/core/providers.dart';
@@ -8,7 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
+  if (!Platform.isAndroid) await windowManager.ensureInitialized();
   final paths = await AppPaths.resolve();
 
   runApp(ProviderScope(
@@ -17,6 +19,8 @@ void main() async {
     overrides: [appPathsProvider.overrideWithValue(paths)],
     child: const MyApp(),
   ));
+
+  if (Platform.isAndroid) return;
 
   const size = Size(420, 640);
   await windowManager.waitUntilReadyToShow(

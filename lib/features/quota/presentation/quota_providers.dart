@@ -43,6 +43,8 @@ class QuotaController extends Notifier<QuotaState> {
         _startPolling(status.profile!);
       } else if (status.phase != ProxyPhase.running) {
         _stopPolling();
+        // A connection problem means nothing once the proxy is not running.
+        state = QuotaState(quota: state.quota);
       }
     });
     ref.onDispose(_stopPolling);

@@ -56,6 +56,5 @@ class SoapQuotaRepository implements QuotaRepository {
   }
 
   static const _unexpected = ServerResponseFailure(
-      'El servidor de cuotas devolvió una respuesta inesperada, '
-      'compruebe el usuario y la contraseña');
+      'No se pudo leer la cuota, compruebe el usuario y la contraseña');
 }

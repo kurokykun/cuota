@@ -1,16 +1,29 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cuota/core/errors/failures.dart';
 import 'package:cuota/core/providers.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/profiles/presentation/profiles_providers.dart';
+import 'package:cuota/features/proxy/data/android_vpn_proxy_gateway.dart';
 import 'package:cuota/features/proxy/data/cntlm_proxy_gateway.dart';
 import 'package:cuota/features/proxy/domain/proxy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final proxyGatewayProvider = Provider<ProxyGateway>(
-  (ref) => CntlmProxyGateway(tempDir: ref.watch(appPathsProvider).tempDir),
+  (ref) => Platform.isAndroid
+      ? AndroidVpnProxyGateway()
+      : CntlmProxyGateway(tempDir: ref.watch(appPathsProvider).tempDir),
 );
+
+/// IPv4 addresses other machines can use to reach this one.
+final localAddressesProvider = FutureProvider<List<String>>((ref) async {
+  final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+  return [
+    for (final interface in interfaces)
+      for (final address in interface.addresses) address.address,
+  ];
+});
 
 enum ProxyPhase { stopped, starting, running, stopping }
 
@@ -41,8 +54,31 @@ class ProxyController extends Notifier<ProxyStatus> {
     final exits = ref.watch(proxyGatewayProvider).unexpectedExits.listen(
           (reason) => state = ProxyStatus(ProxyPhase.stopped, error: reason),
         );
+    final quota = ref.watch(proxyGatewayProvider).quotaExhausted.listen((_) {
+      if (state.phase != ProxyPhase.running || state.warning == _noQuota) return;
+      state = ProxyStatus(
+        ProxyPhase.running,
+        profile: state.profile,
+        warning: _noQuota,
+      );
+    });
     ref.onDispose(exits.cancel);
+    ref.onDispose(quota.cancel);
     return const ProxyStatus(ProxyPhase.stopped);
+  }
+
+  static const _noQuota = 'Sin cuota: el proxy de la universidad está '
+      'bloqueando la navegación';
+
+  /// Adopts a proxy still running from before the UI was opened.
+  Future<void> syncWithGateway() async {
+    final id = await ref.read(proxyGatewayProvider).runningProfileId();
+    if (id == null || state.isBusy) return;
+    final catalog = await ref.read(profilesControllerProvider.future);
+    final profile = catalog.profiles.where((p) => p.id == id).firstOrNull;
+    if (profile != null) {
+      state = ProxyStatus(ProxyPhase.running, profile: profile);
+    }
   }
 
   Future<void> start(Profile profile) async {

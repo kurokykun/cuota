@@ -186,6 +186,29 @@ void main() {
       expect(config, contains('NoProxy\tlocalhost, 10.*\n'));
     });
 
+    test('stays on the given address and local-only by default', () {
+      final config = buildCntlmConfig(
+          sampleProfile().copyWith(allowedHosts: ['192.168.1.0/24']), hashes);
+
+      expect(config, contains('Gateway\tno'));
+      expect(config, isNot(contains('192.168.1.0/24')));
+    });
+
+    test('gateway mode binds every interface and keeps the deny rule last', () {
+      final config = buildCntlmConfig(
+        sampleProfile()
+            .copyWith(gateway: true, allowedHosts: ['192.168.1.0/24']),
+        hashes,
+      );
+
+      expect(config, contains('Gateway\tyes'));
+      expect(config, contains('Listen\t3128\n'));
+      expect(
+        config,
+        endsWith('Allow\t127.0.0.1\nAllow\t192.168.1.0/24\nDeny\t0/0\n'),
+      );
+    });
+
     test('parses the output of cntlm -H', () {
       final parsed = CntlmHashes.parse('Password: \n'
           'PassLM          AA11\n'

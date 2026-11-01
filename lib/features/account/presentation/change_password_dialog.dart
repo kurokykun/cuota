@@ -7,14 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> showChangePasswordDialog(BuildContext context) => showDialog(
       context: context,
-      builder: (_) => _ChangePasswordDialog(pageContext: context),
+      builder: (_) => const _ChangePasswordDialog(),
     );
 
 class _ChangePasswordDialog extends ConsumerStatefulWidget {
-  const _ChangePasswordDialog({required this.pageContext});
-
-  /// Stays valid to report the result once the dialog is closed.
-  final BuildContext pageContext;
+  const _ChangePasswordDialog();
 
   @override
   ConsumerState<_ChangePasswordDialog> createState() =>
@@ -54,11 +51,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       ));
       if (!mounted) return;
       Navigator.pop(context);
-      if (widget.pageContext.mounted) {
-        showMessage(
-            widget.pageContext, 'Contraseña cambiada satisfactoriamente',
-            severity: InfoBarSeverity.success);
-      }
+      ref.read(messagesProvider.notifier).show(
+          'Contraseña cambiada satisfactoriamente',
+          severity: InfoBarSeverity.success);
     } on Failure catch (failure) {
       if (mounted) {
         setState(() {

@@ -13,7 +13,7 @@ class KeyringSecretStore implements SecretStore {
   const KeyringSecretStore([this._storage = const FlutterSecureStorage()]);
 
   static const _failure = SecretStorageFailure(
-      'No se pudo acceder al llavero del sistema, la contraseña no se guardó');
+      'La contraseña no se pudo guardar, tendrá que escribirla la próxima vez');
 
   final FlutterSecureStorage _storage;
 

@@ -25,6 +25,10 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void initState() {
     super.initState();
+    if (Platform.isAndroid) {
+      unawaited(ref.read(proxyControllerProvider.notifier).syncWithGateway());
+      return;
+    }
     windowManager.addListener(this);
     unawaited(windowManager.setPreventClose(true));
     unawaited(_initTray());
@@ -39,8 +43,10 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
-    tray.trayManager.removeListener(this);
+    if (!Platform.isAndroid) {
+      windowManager.removeListener(this);
+      tray.trayManager.removeListener(this);
+    }
     for (final subscription in _signals) {
       unawaited(subscription.cancel());
     }
@@ -117,6 +123,12 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
+    if (Platform.isAndroid) {
+      return ColoredBox(
+        color: FluentTheme.of(context).scaffoldBackgroundColor,
+        child: const SafeArea(child: ProfilesPage()),
+      );
+    }
     return ColoredBox(
       color: FluentTheme.of(context).scaffoldBackgroundColor,
       child: Column(children: [

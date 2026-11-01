@@ -19,6 +19,8 @@ abstract final class ProfileJson {
         domain: json['domain'] as String,
         noProxy: (json['no_proxy'] as List).cast<String>().toList(),
         gateway: json['gateway'] as bool? ?? false,
+        allowedHosts:
+            (json['allowed_hosts'] as List?)?.cast<String>().toList() ?? const [],
       );
 
   static Map<String, dynamic> toJson(Profile profile) => {
@@ -32,5 +34,6 @@ abstract final class ProfileJson {
         'domain': profile.domain,
         'no_proxy': profile.noProxy,
         'gateway': profile.gateway,
+        'allowed_hosts': profile.allowedHosts,
       };
 }

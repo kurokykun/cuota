@@ -56,6 +56,12 @@ class FakeProxy implements ProxyGateway {
 
   @override
   Stream<String> get unexpectedExits => exits.stream;
+
+  @override
+  Stream<void> get quotaExhausted => const Stream.empty();
+
+  @override
+  Future<String?> runningProfileId() async => null;
 }
 
 class FakeQuota implements QuotaRepository {
@@ -198,28 +204,96 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('fills the form from the selected profile', (tester) async {
+    testWidgets('summarizes the configuration without opening it',
+        (tester) async {
       await pump(tester);
-      await tester.tap(find.text('Servidor y red'));
-      await tester.pumpAndSettle();
 
       expect(find.text('usuario'), findsOneWidget);
-      expect(find.text('10.0.0.1'), findsOneWidget);
-      expect(find.text('localhost\n10.*'), findsOneWidget);
+      expect(find.text('10.0.0.1:8080'), findsOneWidget);
+      expect(find.text('Desactivado'), findsOneWidget);
     });
 
-    testWidgets('sends the edited exclusions when starting', (tester) async {
+    testWidgets('shows that sharing is active on the main view',
+        (tester) async {
+      profiles = FakeProfiles([
+        sampleProfile().copyWith(gateway: true, allowedHosts: ['10.8.3.38']),
+      ]);
+
       await pump(tester);
-      await tester.tap(find.text('Servidor y red'));
+
+      expect(find.text('Activado · 1 equipo'), findsOneWidget);
+    });
+
+    testWidgets('saves settings on its own and starts with them',
+        (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('row-server')));
+      await tester.pumpAndSettle();
+      expect(find.text('localhost'), findsOneWidget);
+
+      await tester.enterText(
+          find.byKey(const ValueKey('exclusions-input')), 'uno, dos');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump(const Duration(seconds: 1));
+      expect(profiles.saved.last.noProxy, ['localhost', '10.*', 'uno', 'dos']);
+
+      await tester.tap(find.byKey(const ValueKey('settings-back')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('power-orb')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(proxy.starts, 1);
+      expect(find.text('Conectado'), findsOneWidget);
+    });
+
+    testWidgets('switches between profiles from the header', (tester) async {
+      profiles = FakeProfiles([
+        sampleProfile(id: 'a').copyWith(name: 'Casa'),
+        sampleProfile(id: 'b').copyWith(name: 'Universidad'),
+      ]);
+      await pump(tester);
+      expect(find.text('Casa'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('profile-selector')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Universidad'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.text('localhost\n10.*'), 'uno\ndos');
-      await tester.tap(find.byIcon(FluentIcons.play));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 10));
+      expect(find.text('Universidad'), findsOneWidget);
+      expect(find.text('Casa'), findsNothing);
+    });
 
-      expect(profiles.saved.single.noProxy, ['uno', 'dos']);
-      expect(find.byIcon(FluentIcons.stop), findsOneWidget);
+    testWidgets('the profile actions are in the header menu', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-menu')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cambiar contraseña'), findsOneWidget);
+      expect(find.text('Eliminar perfil'), findsOneWidget);
+    });
+
+    testWidgets('the profile icon opens the color palette', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('profile-color')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Color del perfil'), findsOneWidget);
+    });
+
+    testWidgets('asks for credentials instead of failing to start',
+        (tester) async {
+      profiles = FakeProfiles([sampleProfile(password: '')]);
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('power-orb')));
+      await tester.pumpAndSettle();
+
+      expect(proxy.starts, 0);
+      expect(find.text('Contraseña'), findsOneWidget);
     });
   });
 }

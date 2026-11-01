@@ -7,6 +7,7 @@ import 'package:cuota/core/platform/file_permissions.dart';
 import 'package:cuota/features/profiles/domain/profile.dart';
 import 'package:cuota/features/proxy/data/cntlm_config.dart';
 import 'package:cuota/features/proxy/domain/proxy.dart';
+import 'package:flutter/foundation.dart';
 
 /// Runs cntlm as a child process.
 class CntlmProxyGateway implements ProxyGateway {
@@ -41,6 +42,14 @@ class CntlmProxyGateway implements ProxyGateway {
   @override
   Stream<String> get unexpectedExits => _exits.stream;
 
+  // The desktop proxy does not look into the traffic.
+  @override
+  Stream<void> get quotaExhausted => const Stream.empty();
+
+  // The proxy never outlives the desktop app, see [recover].
+  @override
+  Future<String?> runningProfileId() async => null;
+
   /// Removes what a previous run could not clean up after being killed: its
   /// cntlm process and its configuration file, plaintext in older versions.
   Future<void> recover() async {
@@ -56,15 +65,18 @@ class CntlmProxyGateway implements ProxyGateway {
     final port = int.parse(profile.localPort);
     try {
       await _killOrphan();
-      await _ensurePortFree(profile.localAddress, port);
+      await _ensurePortFree(
+          profile.gateway ? '0.0.0.0' : profile.localAddress, port);
       await ensurePrivateDirectory(tempDir);
       final hashes = await _computeHashes(profile);
       await writePrivateFile(_configPath, buildCntlmConfig(profile, hashes));
       await _launch();
-      await _waitUntilListening(profile.localAddress, port);
+      await _waitUntilListening(
+          profile.gateway ? '127.0.0.1' : profile.localAddress, port);
     } on FileSystemException catch (e) {
       await stop();
-      throw ProxyStartFailure('No se pudo preparar cntlm: ${e.message}');
+      debugPrint('cntlm: ${e.message}');
+      throw const ProxyStartFailure('No se pudo iniciar el proxy, inténtelo de nuevo');
     } on ProxyStartFailure {
       await stop();
       rethrow;
@@ -96,8 +108,8 @@ class CntlmProxyGateway implements ProxyGateway {
       final socket = await ServerSocket.bind(address, port);
       await socket.close();
     } on SocketException {
-      throw ProxyStartFailure(
-          'El puerto $address:$port no está disponible, otro programa lo usa');
+      throw ProxyStartFailure('El puerto $port ya está en uso. Cierre el '
+          'programa que lo ocupa o cambie el puerto en "Servidor y red"');
     }
   }
 
@@ -130,7 +142,7 @@ class CntlmProxyGateway implements ProxyGateway {
     final hashes = CntlmHashes.parse(output);
     if (!hashes.isComplete) {
       throw const ProxyStartFailure(
-          'cntlm no pudo calcular los hashes de la contraseña');
+          'No se pudo preparar la contraseña, compruébela e inténtelo de nuevo');
     }
     return hashes;
   }
@@ -147,7 +159,7 @@ class CntlmProxyGateway implements ProxyGateway {
     // Reading both pipes also keeps cntlm from blocking when they fill up.
     process.stdout.transform(utf8.decoder).listen(_remember);
     process.stderr.transform(utf8.decoder).listen(_remember);
-    await File(_pidPath).writeAsString('${process.pid}');
+    await File(_pidPath).writeAsString('${process.pid}\n$pid');
 
     _exitCode = process.exitCode;
     unawaited(_exitCode!.then((code) {
@@ -155,7 +167,8 @@ class CntlmProxyGateway implements ProxyGateway {
       _process = null;
       _exitCode = null;
       unawaited(_deleteIfExists(_pidPath));
-      _exits.add(_describeExit(code));
+      debugPrint('cntlm exited with code $code: ${_output.join(' | ')}');
+      _exits.add('El proxy se detuvo inesperadamente, inícielo de nuevo');
     }));
   }
 
@@ -164,19 +177,13 @@ class CntlmProxyGateway implements ProxyGateway {
     if (_output.length > 20) _output.removeRange(0, _output.length - 20);
   }
 
-  String _describeExit(int code) {
-    final detail = _output.isEmpty ? '' : ': ${_output.last}';
-    return 'cntlm terminó inesperadamente (código $code)$detail';
-  }
-
   Future<void> _waitUntilListening(String address, int port) async {
     final deadline = DateTime.now().add(startTimeout);
     final process = _process!;
     while (DateTime.now().isBefore(deadline)) {
       if (!identical(_process, process)) {
-        throw ProxyStartFailure(_output.isEmpty
-            ? 'cntlm terminó al iniciar'
-            : 'cntlm terminó al iniciar: ${_output.last}');
+        debugPrint('cntlm exited on start: ${_output.join(' | ')}');
+        throw const ProxyStartFailure(_cannotStart);
       }
       try {
         final socket = await Socket.connect(
@@ -190,16 +197,21 @@ class CntlmProxyGateway implements ProxyGateway {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
     }
-    throw const ProxyStartFailure('cntlm no empezó a escuchar a tiempo');
+    throw const ProxyStartFailure(_cannotStart);
   }
 
   /// Only kills the recorded process if it is really a cntlm started by this
-  /// app, the pid could have been reused.
+  /// app, the pid could have been reused, and the instance that started it is
+  /// gone: another open window may be using that proxy.
   Future<void> _killOrphan() async {
     if (!Platform.isLinux || _process != null) return;
     final pidFile = File(_pidPath);
     if (!await pidFile.exists()) return;
-    final pid = int.tryParse((await pidFile.readAsString()).trim());
+    final lines = const LineSplitter().convert(await pidFile.readAsString());
+    if (lines.length > 1 && await _isOtherInstance(int.tryParse(lines[1]))) {
+      return;
+    }
+    final pid = lines.isEmpty ? null : int.tryParse(lines.first);
     if (pid != null) {
       try {
         final cmdline = await File('/proc/$pid/cmdline').readAsString();
@@ -212,6 +224,16 @@ class CntlmProxyGateway implements ProxyGateway {
       }
     }
     await _deleteIfExists(_pidPath);
+  }
+
+  Future<bool> _isOtherInstance(int? owner) async {
+    if (owner == null || owner == pid) return false;
+    try {
+      final cmdline = await File('/proc/$owner/cmdline').readAsString();
+      return cmdline.contains('cuota');
+    } on FileSystemException {
+      return false;
+    }
   }
 
   Future<void> _waitForExit(int pid) async {
@@ -231,6 +253,12 @@ class CntlmProxyGateway implements ProxyGateway {
     }
   }
 
-  ProxyStartFailure _notFound() => ProxyStartFailure(
-      'No se encontró cntlm ($executable). Instálelo o agréguelo al PATH');
+  static const _cannotStart =
+      'El proxy no pudo iniciarse, revise los datos en "Servidor y red"';
+
+  ProxyStartFailure _notFound() {
+    debugPrint('cntlm executable not found: $executable');
+    return const ProxyStartFailure(
+        'No se encontró el programa cntlm, instálelo para usar el proxy');
+  }
 }

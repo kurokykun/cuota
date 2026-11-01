@@ -46,12 +46,18 @@ class ProfilesController extends AsyncNotifier<ProfileCatalog> {
     return profile;
   }
 
+  /// Publishes [profile] and persists it. On failure the app keeps using the
+  /// new values for this session, and the caller reports the failure.
+  Future<void> saveProfile(Profile profile) async {
+    replace(profile);
+    await SaveProfile(_repository)(profile);
+  }
+
   Future<void> setColor(String id, ProfileColor color) async {
     final profile = _profiles.firstWhere((p) => p.id == id).copyWith(
           color: color,
         );
-    await SaveProfile(_repository)(profile);
-    replace(profile);
+    await saveProfile(profile);
   }
 
   Future<void> delete(String id) async {

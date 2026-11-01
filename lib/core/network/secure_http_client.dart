@@ -36,7 +36,7 @@ Future<T> guardNetwork<T>(
   try {
     return await request().timeout(requestTimeout);
   } on TimeoutException {
-    throw const NetworkFailure('El servidor tardó demasiado en responder');
+    throw const NetworkFailure('El servidor tardó demasiado en responder, inténtelo más tarde');
   } on HandshakeException {
     throw TlsFailure(_tlsMessage(certsDir));
   } on TlsException {
@@ -46,12 +46,15 @@ Future<T> guardNetwork<T>(
     if (e.message.contains('CERTIFICATE') || e.message.contains('Handshake')) {
       throw TlsFailure(_tlsMessage(certsDir));
     }
-    throw const NetworkFailure('No se pudo conectar con el servidor');
+    throw const NetworkFailure(_noConnection);
   } on SocketException {
-    throw const NetworkFailure('No se pudo conectar con el servidor');
+    throw const NetworkFailure(_noConnection);
   }
 }
 
+const _noConnection =
+    'No se pudo conectar con el servidor. ¿Está conectado a la red de la UCI?';
+
 String _tlsMessage(String certsDir) =>
-    'No se pudo verificar el certificado del servidor. Si usa una CA propia, '
-    'copie su certificado .pem a $certsDir';
+    'No se pudo confirmar que el servidor sea seguro. Si su institución usa un '
+    'certificado propio, copie el archivo .pem a $certsDir';

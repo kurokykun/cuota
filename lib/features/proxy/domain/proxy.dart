@@ -13,6 +13,12 @@ abstract interface class ProxyGateway {
 
   /// Emits a description each time the proxy terminates without being asked.
   Stream<String> get unexpectedExits;
+
+  /// Emits when the upstream proxy rejects traffic for lack of quota.
+  Stream<void> get quotaExhausted;
+
+  /// The profile of a proxy that outlived the UI, or null if there is none.
+  Future<String?> runningProfileId();
 }
 
 class StartProxy {

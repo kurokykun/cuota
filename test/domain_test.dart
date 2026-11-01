@@ -31,10 +31,27 @@ void main() {
       expect(ProfileValidators.name('CASA', taken: ['casa']), isNotNull);
     });
 
-    test('exclusions are read one per line', () {
-      expect(ProfileValidators.parseExclusions('a\n\n  b  \n'), ['a', 'b']);
+    test('entries are split whatever the separator is', () {
+      expect(ProfileValidators.splitEntries('a,\n b; c  '), ['a', 'b', 'c']);
       expect(ProfileValidators.exclusions(['a', 'b c']), isNotNull);
       expect(ProfileValidators.exclusions(['a', '*uci.cu']), isNull);
+    });
+
+    test('allowed hosts accept addresses and networks, never everyone', () {
+      expect(ProfileValidators.allowedHosts(['192.168.1.20']), isNull);
+      expect(ProfileValidators.allowedHosts(['192.168.1.0/24']), isNull);
+      expect(ProfileValidators.allowedHosts(['0.0.0.0/0']), isNotNull);
+      expect(ProfileValidators.allowedHosts(['10.0.0.0/33']), isNotNull);
+      expect(ProfileValidators.allowedHosts(['equipo']), isNotNull);
+    });
+
+    test('gateway mode requires at least one allowed host', () {
+      final shared = sampleProfile().copyWith(gateway: true);
+
+      expect(() => ProfileValidators.ensureRunnable(shared),
+          throwsA(isA<ValidationFailure>()));
+      ProfileValidators.ensureRunnable(
+          shared.copyWith(allowedHosts: ['192.168.1.0/24']));
     });
 
     test('credentials are required to run the proxy', () {

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Locations of the files owned by the app.
@@ -26,7 +27,9 @@ class AppPaths {
 
     final env = Platform.environment;
     final home = Platform.isWindows ? env['UserProfile'] : env['HOME'];
-    final root = '$home${Platform.pathSeparator}Cuota';
+    final root = Platform.isAndroid
+        ? '${(await getApplicationSupportDirectory()).path}/Cuota'
+        : '$home${Platform.pathSeparator}Cuota';
     await prefs.setString(_pathKey, root);
     return AppPaths(root: root, isFirstRun: true);
   }

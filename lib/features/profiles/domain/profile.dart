@@ -30,6 +30,7 @@ class Profile {
     required this.domain,
     required this.noProxy,
     required this.gateway,
+    this.allowedHosts = const [],
   });
 
   /// Stable identifier, independent from the display [name].
@@ -44,7 +45,11 @@ class Profile {
   final String upstreamPort;
   final String domain;
   final List<String> noProxy;
+  /// Whether other machines can use the proxy, limited to [allowedHosts].
   final bool gateway;
+
+  /// Addresses or networks (`192.168.1.0/24`) accepted in gateway mode.
+  final List<String> allowedHosts;
 
   Profile copyWith({
     String? name,
@@ -57,6 +62,8 @@ class Profile {
     String? upstreamPort,
     String? domain,
     List<String>? noProxy,
+    bool? gateway,
+    List<String>? allowedHosts,
   }) =>
       Profile(
         id: id,
@@ -70,7 +77,8 @@ class Profile {
         upstreamPort: upstreamPort ?? this.upstreamPort,
         domain: domain ?? this.domain,
         noProxy: noProxy ?? this.noProxy,
-        gateway: gateway,
+        gateway: gateway ?? this.gateway,
+        allowedHosts: allowedHosts ?? this.allowedHosts,
       );
 }
 
